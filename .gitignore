@@ -7,3 +7,4 @@ data/logger.out
 .env*
 !.env.example
 .vercel
+public/history.csv

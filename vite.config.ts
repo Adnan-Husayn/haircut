@@ -9,7 +9,12 @@ export default defineConfig({
   },
   resolve: {
     dedupe: ["react", "react-dom"],
-    alias: { buffer: "buffer" },
+    alias: {
+      // Trailing slash forces the npm package rather than the node builtin.
+      // Without it Vite externalises "buffer" and globalThis.Buffer is never
+      // set, which only surfaces when web3.js serialises a transaction.
+      buffer: "buffer/",
+    },
   },
   optimizeDeps: { include: ["buffer", "@solana/web3.js"] },
 });

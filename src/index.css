@@ -80,3 +80,22 @@ tbody tr:last-child td { border-bottom: none; }
   background: #0d1117; border: 1px solid var(--line); border-radius: 7px;
   padding: .7rem; overflow-x: auto; font-size: .74rem; max-height: 260px;
 }
+
+.spark-line { stroke: var(--accent); }
+.spark-dot { fill: var(--accent); }
+.spark-open { fill: #1c2a1f; }
+.spark { display: block; }
+
+.amount { display: inline-flex; align-items: center; gap: .15rem;
+  background: #10151b; border: 1px solid var(--line); border-radius: 7px; padding: .35rem .6rem; }
+.amount span { color: var(--muted); }
+.amount input { background: transparent; border: none; color: var(--text); font: inherit; width: 88px; outline: none; }
+.verdict p { margin: .35rem 0; }
+
+.provenance { display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin-top: .9rem; font-size: .82rem; }
+.provenance button {
+  background: #10151b; color: var(--text); border: 1px solid var(--line);
+  border-radius: 7px; padding: .35rem .7rem; font: inherit; font-size: .82rem; cursor: pointer;
+}
+.provenance button:disabled { opacity: .4; cursor: not-allowed; }

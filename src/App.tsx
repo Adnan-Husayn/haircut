@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import CostHistory from "./components/CostHistory";
 import CostTable from "./components/CostTable";
+import OrderPlanner from "./components/OrderPlanner";
 import StalenessPanel from "./components/StalenessPanel";
 import SwapPanel from "./components/SwapPanel";
 import { impliedMarketPrice, measureRoundTrip, type RoundTrip } from "./lib/cost";
-import { searchToken } from "./lib/jupiter";
+import { latestSnapshot, loadHistory, type HistoryPoint } from "./lib/history";
 import { marketOpen, readFeeds, type PriceUpdate } from "./lib/pyth";
 import { SIZES_USDC, XSTOCKS } from "./lib/tokens";
 
@@ -13,78 +15,71 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export default function App() {
   const [trips, setTrips] = useState<RoundTrip[]>([]);
   const [liquidity, setLiquidity] = useState<Map<string, number>>(new Map());
-  const [marketPrice, setMarketPrice] = useState<Map<string, number>>(new Map());
   const [feeds, setFeeds] = useState<Map<string, PriceUpdate>>(new Map());
   const [isOpen, setIsOpen] = useState<boolean | null>(null);
+  const [history, setHistory] = useState<HistoryPoint[]>([]);
+
+  /** When the displayed table was recorded; null once it has been refreshed live. */
+  const [recordedAt, setRecordedAt] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [done, setDone] = useState(0);
   const [failed, setFailed] = useState(0);
-  const [finished, setFinished] = useState(false);
 
   const total = XSTOCKS.length * SIZES_USDC.length;
 
-  // Prefer Jupiter's index price, but fall back to the price implied by the
-  // round trips we already measured. Without this the divergence column empties
-  // out whenever the token-metadata calls get rate-limited.
-  const effectiveMarketPrice = new Map(marketPrice);
-  for (const token of XSTOCKS) {
-    if (effectiveMarketPrice.has(token.symbol)) continue;
-    const implied = impliedMarketPrice(trips, token.symbol);
-    if (implied) effectiveMarketPrice.set(token.symbol, implied);
-  }
-
+  // Paint from recorded data. Quoting the whole basket on mount exhausted the
+  // free Jupiter tier and left nothing for the on-demand planner.
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
-      // Market state and the oracle snapshot are cheap; do them first so the
-      // page says something useful while the quotes stream in.
-      marketOpen("AAPL").then((v) => !cancelled && setIsOpen(v));
+    marketOpen("AAPL").then((v) => !cancelled && setIsOpen(v));
 
-      const feedIds = XSTOCKS.map((t) => t.pythFeedId).filter((id): id is string => !!id);
-      readFeeds(feedIds)
-        .then((m) => !cancelled && setFeeds(m))
-        .catch(() => {/* panel simply stays empty */});
+    const feedIds = XSTOCKS.map((t) => t.pythFeedId).filter((id): id is string => !!id);
+    readFeeds(feedIds)
+      .then((m) => !cancelled && setFeeds(m))
+      .catch(() => {/* panel stays empty */});
 
-      for (const token of XSTOCKS) {
-        if (cancelled) return;
-        try {
-          const info = await searchToken(token.symbol);
-          if (!cancelled && info) {
-            if (info.liquidity) {
-              setLiquidity((m) => new Map(m).set(token.symbol, info.liquidity!));
-            }
-            if (info.usdPrice) {
-              setMarketPrice((m) => new Map(m).set(token.symbol, info.usdPrice!));
-            }
-          }
-        } catch {
-          /* decoration only */
-        }
-
-        for (const size of SIZES_USDC) {
-          if (cancelled) return;
-          try {
-            const trip = await measureRoundTrip(token, size);
-            if (!cancelled) {
-              setTrips((prev) => [...prev, trip]);
-              setDone((n) => n + 1);
-            }
-          } catch {
-            if (!cancelled) {
-              setFailed((n) => n + 1);
-              setDone((n) => n + 1);
-            }
-          }
-          await sleep(PAUSE_MS);
-        }
+    loadHistory().then((h) => {
+      if (cancelled) return;
+      setHistory(h);
+      const snap = latestSnapshot(h);
+      if (snap.trips.length) {
+        setTrips(snap.trips as RoundTrip[]);
+        setLiquidity(snap.liquidity);
+        setRecordedAt(snap.ts);
       }
-      if (!cancelled) setFinished(true);
-    })();
+    });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
+
+  /** Re-measure everything live, on request. */
+  async function refreshLive() {
+    setRefreshing(true);
+    setDone(0);
+    setFailed(0);
+    const fresh: RoundTrip[] = [];
+    for (const token of XSTOCKS) {
+      for (const size of SIZES_USDC) {
+        try {
+          fresh.push(await measureRoundTrip(token, size));
+          setTrips([...fresh]);
+        } catch {
+          setFailed((n) => n + 1);
+        }
+        setDone((n) => n + 1);
+        await sleep(PAUSE_MS);
+      }
+    }
+    setRecordedAt(null);
+    setRefreshing(false);
+  }
+
+  const marketPrice = new Map<string, number>();
+  for (const token of XSTOCKS) {
+    const implied = impliedMarketPrice(trips, token.symbol);
+    if (implied) marketPrice.set(token.symbol, implied);
+  }
 
   return (
     <div className="wrap">
@@ -104,22 +99,34 @@ export default function App() {
           )}
         </h2>
         <p className="note">
-          xStocks trade 24/7; the market pricing them does not. Cost is quoted live from Jupiter
-          across whichever venues the trade actually routes through.
+          xStocks trade 24/7; the market pricing them does not. Cost is measured across whichever
+          venues the trade actually routes through.
         </p>
         <CostTable trips={trips} liquidity={liquidity} />
-        {!finished && (
-          <p className="progress">
-            measuring… {done}/{total} round trips
-            {failed > 0 ? ` · ${failed} failed` : ""}
-          </p>
-        )}
-        {finished && failed > 0 && (
-          <p className="err">
-            {failed} of {total} quotes failed, so the table has gaps. Usually rate limiting — reload
-            to retry.
-          </p>
-        )}
+
+        <div className="provenance">
+          <span className={recordedAt ? "muted" : "good"}>
+            {refreshing
+              ? `measuring live… ${done}/${total}${failed ? ` · ${failed} failed` : ""}`
+              : recordedAt
+                ? `recorded ${recordedAt.toISOString().slice(5, 16).replace("T", " ")} UTC`
+                : `measured live${failed ? ` · ${failed} of ${total} quotes failed` : ""}`}
+          </span>
+          <button onClick={refreshLive} disabled={refreshing}>
+            {refreshing ? "measuring…" : "Re-measure live"}
+          </button>
+        </div>
+      </div>
+
+      <OrderPlanner trips={trips} />
+
+      <div className="panel">
+        <h2>Cost is not a constant</h2>
+        <p className="note">
+          Recorded continuously since the project started. The spread between tokens persists, and
+          each token's own cost moves — which is why a single quote is not an answer.
+        </p>
+        <CostHistory points={history} sizeUsdc={Math.max(...SIZES_USDC)} />
       </div>
 
       <SwapPanel />
@@ -130,7 +137,7 @@ export default function App() {
           Pyth equity feeds read directly from their price accounts on Solana. The decoder is
           validated against SOL/USD on the same program, which returns current to the second.
         </p>
-        <StalenessPanel feeds={feeds} marketPrice={effectiveMarketPrice} />
+        <StalenessPanel feeds={feeds} marketPrice={marketPrice} />
       </div>
 
       <p className="foot">
