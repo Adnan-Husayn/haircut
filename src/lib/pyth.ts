@@ -90,10 +90,63 @@ export function decodePriceUpdate(data: Uint8Array, feedId: string): PriceUpdate
   };
 }
 
+/**
+ * Read many feeds in a single getMultipleAccounts call.
+ *
+ * Used by the browser, where the staleness panel should cost one RPC request
+ * rather than one per token. Returns a map keyed by feed id; a missing entry
+ * means no account exists at that shard.
+ */
+export async function readFeeds(
+  feedIds: string[],
+  shard = 0,
+): Promise<Map<string, PriceUpdate>> {
+  const out = new Map<string, PriceUpdate>();
+  if (feedIds.length === 0) return out;
+
+  const addresses = feedIds.map((id) => priceFeedAccount(id, shard));
+  const infos = await makeConnection().getMultipleAccountsInfo(addresses);
+
+  infos.forEach((info, i) => {
+    if (!info) return;
+    try {
+      out.set(feedIds[i], decodePriceUpdate(new Uint8Array(info.data), feedIds[i]));
+    } catch {
+      /* a feed that will not decode is reported as missing, never as fresh */
+    }
+  });
+  return out;
+}
+
 /** Fetch and decode a feed. Returns null when no account exists for that shard. */
 export async function readFeed(feedId: string, shard = 0): Promise<PriceUpdate | null> {
   const address = priceFeedAccount(feedId, shard);
   const info = await makeConnection().getAccountInfo(address);
   if (!info) return null;
   return decodePriceUpdate(new Uint8Array(info.data), feedId);
+}
+
+/**
+ * Whether the underlying US equity market is open.
+ *
+ * Uses the Hermes *metadata* endpoint, which is still public. Only the price
+ * endpoints moved behind auth.
+ */
+export async function marketOpen(equitySymbol: string): Promise<boolean | null> {
+  try {
+    const res = await fetch(
+      `https://hermes.pyth.network/v2/price_feeds?query=${encodeURIComponent(equitySymbol)}&asset_type=equity`,
+    );
+    if (!res.ok) return null;
+    const feeds = (await res.json()) as Array<{
+      attributes?: { nasdaq_symbol?: string };
+      market_hours?: { is_open?: boolean };
+    }>;
+    for (const f of feeds) {
+      if (f.attributes?.nasdaq_symbol === equitySymbol) return f.market_hours?.is_open ?? null;
+    }
+  } catch {
+    /* market state is decoration; never fail the page over it */
+  }
+  return null;
 }

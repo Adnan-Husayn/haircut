@@ -1,8 +1,15 @@
 /**
  * Solana connection.
  *
- * The public mainnet-beta endpoint rate-limits aggressively under any real load.
- * Set RPC_HTTP (node) or VITE_RPC_HTTP (browser) to a Helius/QuickNode URL.
+ * The public mainnet-beta endpoint rate-limits aggressively under load, so
+ * scripts should set RPC_HTTP (loaded from .env via `node --env-file`).
+ *
+ * SECURITY: anything named VITE_* is inlined into the client bundle at build
+ * time and is therefore public. Do NOT set VITE_RPC_HTTP in a deployed build
+ * unless the key is meant to be world-readable. The browser only needs a single
+ * getMultipleAccounts call for the staleness panel, which the public endpoint
+ * serves comfortably -- leaving VITE_RPC_HTTP unset in production is the correct
+ * default. It exists for local development convenience only.
  */
 import { Connection } from "@solana/web3.js";
 

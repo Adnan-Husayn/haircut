@@ -1,0 +1,62 @@
+:root {
+  --bg: #0b0d10;
+  --panel: #14181d;
+  --line: #222831;
+  --text: #e6e9ee;
+  --muted: #8b95a3;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --accent: #60a5fa;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.wrap { max-width: 1040px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+
+h1 { font-size: 1.45rem; margin: 0 0 .35rem; letter-spacing: -.01em; }
+.sub { color: var(--muted); margin: 0 0 2rem; max-width: 62ch; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.panel h2 { font-size: .95rem; margin: 0 0 .2rem; }
+.panel .note { color: var(--muted); font-size: .82rem; margin: 0 0 1rem; }
+
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: .5rem .6rem; text-align: right; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 500; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+tbody tr:last-child td { border-bottom: none; }
+.sym { font-weight: 600; }
+.route { color: var(--muted); font-size: .78rem; text-align: left; }
+.muted { color: var(--muted); }
+.good { color: var(--good); }
+.warn { color: var(--warn); }
+.bad  { color: var(--bad); }
+
+.bar { height: 4px; border-radius: 2px; background: var(--accent); opacity: .55; }
+
+.pill {
+  display: inline-block; padding: .12rem .5rem; border-radius: 999px;
+  font-size: .74rem; border: 1px solid var(--line); color: var(--muted);
+}
+.pill.closed { color: var(--warn); border-color: #4a3a10; background: #241c07; }
+.pill.open { color: var(--good); border-color: #14432a; background: #0c2418; }
+
+.scroll { overflow-x: auto; }
+.progress { color: var(--muted); font-size: .82rem; }
+.err { color: var(--bad); font-size: .82rem; margin-top: .6rem; }
+.foot { color: var(--muted); font-size: .78rem; margin-top: 2rem; }
