@@ -1,7 +1,8 @@
 node_modules/
 dist/
-.env
-.env.local
 .DS_Store
 data/logger.out
 *.tsbuildinfo
+# env files: ignore all, keep the documented example
+.env*
+!.env.example
