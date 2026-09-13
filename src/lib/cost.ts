@@ -105,3 +105,21 @@ export function assertSane(trips: RoundTrip[]): string[] {
   }
   return problems;
 }
+
+/**
+ * Market price implied by a round trip's buy leg.
+ *
+ * Used as a fallback when Jupiter's index price is unavailable (it rate-limits
+ * under load, and losing it emptied the oracle-divergence column). The smallest
+ * trade size is the best estimate because it carries the least price impact.
+ *
+ * This ignores the scaledUiAmount multiplier, so it is off by up to ~40 bps.
+ * That is immaterial here: it is only ever compared against oracle prices that
+ * are wrong by whole percentage points.
+ */
+export function impliedMarketPrice(trips: RoundTrip[], symbol: string): number | undefined {
+  const candidates = trips.filter((t) => t.symbol === symbol && t.tokensOut > 0);
+  if (candidates.length === 0) return undefined;
+  const smallest = candidates.reduce((a, b) => (a.sizeUsdc <= b.sizeUsdc ? a : b));
+  return smallest.sizeUsdc / smallest.tokensOut;
+}

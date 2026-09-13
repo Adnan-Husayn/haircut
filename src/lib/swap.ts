@@ -1,0 +1,88 @@
+/**
+ * Swap execution.
+ *
+ * Deliberately staged: quote -> build -> SIMULATE -> send. The simulation step
+ * is the same discipline as the arbitrage bot, which verifies a bundle against
+ * live state before broadcasting. It catches a failing route, a missing token
+ * account or an exhausted compute budget for free, before any money moves.
+ */
+import { VersionedTransaction, type Connection } from "@solana/web3.js";
+import { buildSwapTransaction, quote, routeLabel, type Quote } from "./jupiter";
+import { USDC_DECIMALS, USDC_MINT, type XStock } from "./tokens";
+
+export interface PreparedSwap {
+  quote: Quote;
+  transaction: VersionedTransaction;
+  route: string;
+  /** Raw base units of the xStock the quote expects to deliver. */
+  expectedOut: bigint;
+  lastValidBlockHeight: number;
+}
+
+/** Quote a buy and build the unsigned transaction for it. Nothing is sent. */
+export async function prepareBuy(
+  token: XStock,
+  sizeUsdc: number,
+  userPublicKey: string,
+): Promise<PreparedSwap> {
+  const inRaw = BigInt(sizeUsdc) * 10n ** BigInt(USDC_DECIMALS);
+  const q = await quote(USDC_MINT, token.mint, inRaw);
+  const built = await buildSwapTransaction(q, userPublicKey);
+
+  return {
+    quote: q,
+    transaction: VersionedTransaction.deserialize(base64ToBytes(built.swapTransaction)),
+    route: routeLabel(q),
+    expectedOut: BigInt(q.outAmount),
+    lastValidBlockHeight: built.lastValidBlockHeight,
+  };
+}
+
+export interface SimulationResult {
+  ok: boolean;
+  /** Program error, when the simulation failed. */
+  error?: string;
+  logs: string[];
+  unitsConsumed?: number;
+}
+
+/**
+ * Dry-run against live state.
+ *
+ * `sigVerify` is off because the transaction is not signed yet, and
+ * `replaceRecentBlockhash` keeps a slightly old blockhash from failing the
+ * simulation for reasons unrelated to the swap itself.
+ */
+export async function simulate(
+  connection: Connection,
+  tx: VersionedTransaction,
+): Promise<SimulationResult> {
+  const res = await connection.simulateTransaction(tx, {
+    sigVerify: false,
+    replaceRecentBlockhash: true,
+    commitment: "confirmed",
+  });
+
+  return {
+    ok: res.value.err === null,
+    error: res.value.err ? JSON.stringify(res.value.err) : undefined,
+    logs: res.value.logs ?? [],
+    unitsConsumed: res.value.unitsConsumed,
+  };
+}
+
+/** Human-readable reason a simulation failed, pulled from the program logs. */
+export function explainFailure(sim: SimulationResult): string {
+  const insufficient = sim.logs.find((l) => /insufficient/i.test(l));
+  if (insufficient) return insufficient.replace(/^Program log: /, "");
+  const anyError = sim.logs.find((l) => /error|failed/i.test(l));
+  if (anyError) return anyError.replace(/^Program log: /, "");
+  return sim.error ?? "simulation failed without a log";
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}

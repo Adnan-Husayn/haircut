@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import CostTable from "./components/CostTable";
 import StalenessPanel from "./components/StalenessPanel";
-import { measureRoundTrip, type RoundTrip } from "./lib/cost";
+import SwapPanel from "./components/SwapPanel";
+import { impliedMarketPrice, measureRoundTrip, type RoundTrip } from "./lib/cost";
 import { searchToken } from "./lib/jupiter";
 import { marketOpen, readFeeds, type PriceUpdate } from "./lib/pyth";
 import { SIZES_USDC, XSTOCKS } from "./lib/tokens";
@@ -20,6 +21,16 @@ export default function App() {
   const [finished, setFinished] = useState(false);
 
   const total = XSTOCKS.length * SIZES_USDC.length;
+
+  // Prefer Jupiter's index price, but fall back to the price implied by the
+  // round trips we already measured. Without this the divergence column empties
+  // out whenever the token-metadata calls get rate-limited.
+  const effectiveMarketPrice = new Map(marketPrice);
+  for (const token of XSTOCKS) {
+    if (effectiveMarketPrice.has(token.symbol)) continue;
+    const implied = impliedMarketPrice(trips, token.symbol);
+    if (implied) effectiveMarketPrice.set(token.symbol, implied);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -111,13 +122,15 @@ export default function App() {
         )}
       </div>
 
+      <SwapPanel />
+
       <div className="panel">
         <h2>The on-chain oracle for these stocks has stopped updating</h2>
         <p className="note">
           Pyth equity feeds read directly from their price accounts on Solana. The decoder is
           validated against SOL/USD on the same program, which returns current to the second.
         </p>
-        <StalenessPanel feeds={feeds} marketPrice={marketPrice} />
+        <StalenessPanel feeds={feeds} marketPrice={effectiveMarketPrice} />
       </div>
 
       <p className="foot">

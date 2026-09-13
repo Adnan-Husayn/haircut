@@ -60,3 +60,23 @@ tbody tr:last-child td { border-bottom: none; }
 .progress { color: var(--muted); font-size: .82rem; }
 .err { color: var(--bad); font-size: .82rem; margin-top: .6rem; }
 .foot { color: var(--muted); font-size: .78rem; margin-top: 2rem; }
+
+.controls { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.controls select, .controls button {
+  background: #10151b; color: var(--text); border: 1px solid var(--line);
+  border-radius: 7px; padding: .45rem .7rem; font: inherit; cursor: pointer;
+}
+.controls button:disabled { opacity: .4; cursor: not-allowed; }
+.controls button.primary { border-color: #1e4976; background: #11243a; color: var(--accent); }
+
+.kv { display: grid; gap: .4rem; margin: 0 0 .4rem; }
+.kv > div { display: flex; gap: .8rem; }
+.kv dt { color: var(--muted); min-width: 108px; font-size: .82rem; }
+.kv dd { margin: 0; font-size: .85rem; }
+
+.logs { margin-top: .6rem; }
+.logs summary { color: var(--muted); font-size: .8rem; cursor: pointer; }
+.logs pre {
+  background: #0d1117; border: 1px solid var(--line); border-radius: 7px;
+  padding: .7rem; overflow-x: auto; font-size: .74rem; max-height: 260px;
+}
