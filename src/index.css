@@ -99,3 +99,7 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 7px; padding: .35rem .7rem; font: inherit; font-size: .82rem; cursor: pointer;
 }
 .provenance button:disabled { opacity: .4; cursor: not-allowed; }
+
+.masthead { margin-bottom: .9rem; }
+.masthead h1 { font-size: 2rem; letter-spacing: -.02em; margin: 0; }
+.masthead .tagline { color: var(--accent); margin: .25rem 0 0; font-size: .95rem; }

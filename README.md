@@ -1,8 +1,11 @@
-# Stocklana submission — working title TBD
+# Haircut
 
-**Live:** https://stocklana-omega.vercel.app
+**Every tokenized stock takes a haircut. Nobody tells you how big.**
 
-**What it actually costs to trade a tokenized stock on Solana, before you trade it.**
+**Live:** https://haircut-fi.vercel.app
+
+Haircut measures what trading a tokenized stock on Solana actually costs — at your size, across
+the venues your trade really routes through — before you trade.
 
 ## The problem
 
@@ -107,5 +110,5 @@ needs no key: it makes one batched account read, which the public endpoint serve
 
 ## Hackathon
 
-Stocklana — $100,000, funded by the Solana Foundation.
+Built for Stocklana — $100,000, funded by the Solana Foundation.
 Submissions close **Friday 18 September, 4:00pm ET**. Judging through 2 October.

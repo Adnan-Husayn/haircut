@@ -83,10 +83,16 @@ export default function App() {
 
   return (
     <div className="wrap">
-      <h1>What a tokenized stock actually costs to trade</h1>
+      <header className="masthead">
+        <h1>Haircut</h1>
+        <p className="tagline">
+          Every tokenized stock takes a haircut. Nobody tells you how big.
+        </p>
+      </header>
       <p className="sub">
-        Every figure below is measured, not quoted: buy $N of the token, then immediately sell the
-        exact amount received. Whatever does not come back is what entering and exiting cost.
+        Measured, not quoted: buy $N of the token, then immediately sell the exact amount
+        received. Whatever does not come back is the haircut — what entering and exiting actually
+        cost you.
       </p>
 
       <div className="panel">
