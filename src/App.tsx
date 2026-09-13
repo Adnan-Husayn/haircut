@@ -86,8 +86,9 @@ export default function App() {
       <header className="masthead">
         <h1>Haircut</h1>
         <p className="tagline">
-          Every tokenized stock takes a haircut. Nobody tells you how big.
+          Every tokenized stock takes a haircut.<br />Nobody tells you how big.
         </p>
+        <div className="rule" />
       </header>
       <p className="sub">
         Measured, not quoted: buy $N of the token, then immediately sell the exact amount

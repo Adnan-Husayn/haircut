@@ -65,7 +65,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
       </p>
 
       <div className="controls">
-        <label className="muted" style={{ fontSize: ".85rem" }}>I want to trade</label>
+        <span className="label">I want to trade</span>
         <div className="amount">
           <span>$</span>
           <input
@@ -76,7 +76,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
             onChange={(e) => { setAmount(Number(e.target.value)); setChosen(null); setAlternative(null); }}
           />
         </div>
-        <label className="muted" style={{ fontSize: ".85rem" }}>of</label>
+        <span className="label">of</span>
         <select value={symbol} onChange={(e) => { setSymbol(e.target.value); setChosen(null); setAlternative(null); }}>
           {XSTOCKS.map((t) => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
         </select>
@@ -89,7 +89,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
         <div className="verdict">
           <p>
             <strong>{chosen.symbol}</strong> costs{" "}
-            <span className={chosen.roundTripBps > 40 ? "bad" : chosen.roundTripBps > 10 ? "warn" : "good"}>
+            <span className={`big ${chosen.roundTripBps > 40 ? "c4" : "c3"}`}>
               ${dollars(chosen).toFixed(2)}
             </span>{" "}
             on ${chosen.sizeUsdc.toLocaleString()} — {chosen.roundTripBps.toFixed(1)} bps in and out,
@@ -98,8 +98,8 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
           {alternative && saving > 0.01 && (
             <p>
               <strong>{alternative.symbol}</strong> would cost{" "}
-              <span className="good">${dollars(alternative).toFixed(2)}</span> for the same size.
-              Switching saves <strong className="good">${saving.toFixed(2)}</strong>
+              <span className="big accent">${dollars(alternative).toFixed(2)}</span> for the same size.
+              Switching saves <strong className="accent">${saving.toFixed(2)}</strong>
               {dollars(alternative) > 0 && ` (${(dollars(chosen) / dollars(alternative)).toFixed(1)}x cheaper)`}.
             </p>
           )}
@@ -108,7 +108,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
               {chosen.symbol} is already the cheapest of the pair at this size.
             </p>
           )}
-          <p className="muted" style={{ fontSize: ".8rem" }}>
+          <p className="muted" style={{ fontSize: ".8rem", marginTop: ".9rem" }}>
             Different companies, so not the same exposure — but if the goal is equity exposure
             rather than one specific name, the cost difference is real money.
           </p>

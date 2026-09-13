@@ -134,11 +134,11 @@ export default function SwapPanel() {
               {sim === null ? (
                 <span className="muted">running…</span>
               ) : sim.ok ? (
-                <span className="good">
+                <span className="accent">
                   succeeded{sim.unitsConsumed ? ` · ${sim.unitsConsumed.toLocaleString()} CU` : ""}
                 </span>
               ) : (
-                <span className="bad">failed — {explainFailure(sim)}</span>
+                <span className="alarm">failed — {explainFailure(sim)}</span>
               )}
             </dd>
           </div>
@@ -153,7 +153,7 @@ export default function SwapPanel() {
       )}
 
       {signature && (
-        <p className="good" style={{ marginTop: ".8rem" }}>
+        <p className="accent" style={{ marginTop: "1rem", fontFamily: "var(--mono)", fontSize: ".8rem" }}>
           {stage === "sent" ? "confirmed" : "sent"} —{" "}
           <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
             {signature.slice(0, 24)}…

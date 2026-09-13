@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import type { HistoryPoint } from "../lib/history";
 import { toSeries } from "../lib/history";
 
-const W = 150;
-const H = 28;
+const W = 168;
+const H = 30;
 
 /** Inline sparkline. No chart library: eight tiny paths do not justify the weight. */
 function Spark({ values, open }: { values: number[]; open: boolean[] }) {
@@ -68,22 +68,24 @@ export default function CostHistory({
               <th>Low</th>
               <th>High</th>
               <th>Swing</th>
-              <th style={{ textAlign: "left", width: W + 20 }}>
+              <th className="route-col" style={{ textAlign: "left", width: W + 20 }}>
                 Cost at ${sizeUsdc.toLocaleString()} over time
               </th>
             </tr>
           </thead>
           <tbody>
-            {series.map((s) => (
-              <tr key={s.symbol}>
-                <td className="sym">{s.symbol}</td>
-                <td>{s.last.toFixed(1)}<span className="muted" style={{ fontSize: ".75em" }}> bps</span></td>
-                <td className="muted">{s.min.toFixed(1)}</td>
-                <td className="muted">{s.max.toFixed(1)}</td>
-                <td className={s.max - s.min > 30 ? "bad" : s.max - s.min > 10 ? "warn" : "muted"}>
+            {series.map((s, i) => (
+              <tr key={s.symbol} style={{ animationDelay: `${i * 45}ms` }}>
+                <td data-label="Token" className="sym">{s.symbol}</td>
+                <td data-label="Now" className={s.last < 15 ? "c2" : s.last < 40 ? "c3" : "c4"}>
+                  {s.last.toFixed(1)}<span className="unit">bps</span>
+                </td>
+                <td data-label="Low" className="muted">{s.min.toFixed(1)}</td>
+                <td data-label="High" className="muted">{s.max.toFixed(1)}</td>
+                <td data-label="Swing" className={s.max - s.min > 30 ? "accent" : "muted"}>
                   {(s.max - s.min).toFixed(1)}
                 </td>
-                <td>
+                <td data-label="Over time" className="route">
                   <Spark
                     values={s.points.map((p) => p.roundTripBps)}
                     open={s.points.map((p) => p.marketOpen === true)}
