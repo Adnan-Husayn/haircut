@@ -21,6 +21,23 @@ export function isPublicFallback(): boolean {
   return rpcUrl() === PUBLIC_FALLBACK;
 }
 
+/**
+ * RPC endpoint with any credential removed, safe to print or screenshot.
+ * Providers put the key in a query param (Helius `?api-key=`) or in the path
+ * (QuickNode), so strip both.
+ */
+export function rpcDisplay(): string {
+  const raw = rpcUrl();
+  try {
+    const url = new URL(raw);
+    const redactedParams = [...url.searchParams.keys()].length > 0 ? "?<redacted>" : "";
+    const path = url.pathname !== "/" ? "/<redacted>" : "";
+    return `${url.protocol}//${url.host}${path}${redactedParams}`;
+  } catch {
+    return "<unparseable rpc url>";
+  }
+}
+
 export function makeConnection(): Connection {
   return new Connection(rpcUrl(), { commitment: "confirmed" });
 }

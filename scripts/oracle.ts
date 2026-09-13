@@ -6,13 +6,13 @@
  * and any staleness claim about the equity feeds is meaningless.
  */
 import { readFeed, priceFeedAccount, SOL_USD_FEED_ID } from "../src/lib/pyth";
-import { isPublicFallback, rpcUrl } from "../src/lib/chain";
+import { isPublicFallback, rpcDisplay } from "../src/lib/chain";
 import { XSTOCKS } from "../src/lib/tokens";
 
 const FRESH_HOURS = 1;
 
 async function main() {
-  console.log(`rpc: ${rpcUrl()}${isPublicFallback() ? "  (public fallback — expect rate limits)" : ""}\n`);
+  console.log(`rpc: ${rpcDisplay()}${isPublicFallback() ? "  (public fallback — expect rate limits)" : ""}\n`);
 
   const control = await readFeed(SOL_USD_FEED_ID);
   if (!control) {
