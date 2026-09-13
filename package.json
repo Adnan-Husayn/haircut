@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "probe": "tsx scripts/probe.ts"
+    "probe": "tsx scripts/probe.ts",
+    "oracle": "tsx scripts/oracle.ts"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.0",

@@ -44,19 +44,37 @@ In a round trip both legs are raw, so the multiplier cancels exactly.
 Sanity check that the metric is sound: round-trip cost is monotonic in pool depth, and monotonic
 in trade size, for every token. The earlier index-based numbers were neither.
 
-## Bonus finding: the on-chain equity oracle is a month stale
+## Second finding: the on-chain equity oracles have stopped updating
 
 Pyth price feed accounts are PDAs of `pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT`,
-seeds `[u16le shard, 32-byte feed_id]`.
+seeds `[u16le shard, 32-byte feed_id]`. Reading all eight underlying equity feeds on-chain:
 
-| feed | account | last published |
-|------|---------|----------------|
-| SOL/USD | `7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE` | **0.0h ago** |
-| AAPL | `DJ2FyTgUAkEtXW3U5P9PF19meFTRtW4ZWKKFgACfVbUy` | **710h ago** — $305.92, 2026-08-14 |
+| feed | oracle price | market price | divergence | last published |
+|------|-------------:|-------------:|-----------:|---------------:|
+| MSTR  |  $93.04 | $129.91 | **+39.6%** | 717h ago |
+| META  | $589.79 | $641.64 |   +8.8% | 717h ago |
+| AAPL  | $305.92 | $330.90 |   +8.2% | 717h ago |
+| AMZN  | $261.22 | $253.31 |   −3.0% | 573h ago |
+| GOOGL | $346.01 | $336.88 |   −2.6% | 717h ago |
+| NVDA  | $211.02 | $215.79 |   +2.3% | 433h ago |
+| SPY   | $765.48 | $761.41 |   −0.5% | 433h ago |
+| TSLA  | $365.28 | $363.86 |   −0.4% |  41h ago |
 
-The decoder is correct: the SOL control is live. Pyth's 24/7 synthetic equity feed has no on-chain
-account at any shard, and Hermes price endpoints now require auth. So there is no usable on-chain
-reference price for tokenized equities — while the market trades them around the clock.
+**Seven of eight are weeks stale.** Only TSLA is current — and its 41 hours is simply Friday's
+close, which is correct behaviour for an equity feed over a weekend. The rest stopped between
+14 and 26 August.
+
+Divergence tracks staleness exactly as you would expect: the freshest feed is off by 0.4%, and
+the one that last published a month ago is off by nearly 40%. Anything pricing collateral or
+liquidations off the MSTR feed is working from $93 for an asset trading at $130.
+
+Verification: the decoder is validated against SOL/USD on the same program
+(`7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE`), which returns current-to-the-second. `npm run
+oracle` refuses to report equity staleness if that control is not fresh.
+
+Pyth's 24/7 synthetic equity feeds have no on-chain account at any shard, and Hermes price
+endpoints now require auth — so there is no free live on-chain reference price for tokenized
+equities. This is why cost is measured by round trip and not against an oracle.
 
 ## Data collection
 
