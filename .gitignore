@@ -6,3 +6,4 @@ data/logger.out
 # env files: ignore all, keep the documented example
 .env*
 !.env.example
+.vercel

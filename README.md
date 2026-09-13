@@ -1,5 +1,7 @@
 # Stocklana submission — working title TBD
 
+**Live:** https://stocklana-omega.vercel.app
+
 **What it actually costs to trade a tokenized stock on Solana, before you trade it.**
 
 ## The problem
@@ -90,6 +92,18 @@ No API keys. Jupiter quotes and Pyth market-hours metadata are both public.
 
 `data/xstock_log.csv` is the earlier index-based series, retained for comparison; its
 `exec_cost_bps` column is superseded and should not be used.
+
+## Running it locally
+
+```bash
+npm install
+npm run dev      # dashboard
+npm run probe    # cost table in the terminal, exits non-zero if unsound
+npm run oracle   # oracle staleness, validated against a SOL/USD control
+```
+
+Copy `.env.example` to `.env` and set `RPC_HTTP` for the scripts. The deployed site
+needs no key: it makes one batched account read, which the public endpoint serves.
 
 ## Hackathon
 
