@@ -67,10 +67,19 @@ export default function SwapPanel() {
     reset();
   }
 
-  /** Floor, so "Max" never asks to spend a fraction of a cent more than exists. */
+  /**
+   * Balances are shown floored to the cent, never rounded.
+   *
+   * toFixed() rounds up, so a balance of 10.3651 displayed as "$10.37" would be
+   * offered and then refused for exceeding itself. Flooring means the figure on
+   * screen is always genuinely spendable.
+   */
+  const spendable = balances ? Math.floor(balances.usdc * 100) / 100 : null;
+
+  /** "Max" therefore agrees with the balance shown. */
   function useMax() {
-    if (!balances) return;
-    setAmount((Math.floor(balances.usdc * 100) / 100).toFixed(2));
+    if (spendable === null) return;
+    setAmount(spendable.toFixed(2));
   }
 
   useEffect(() => {
@@ -184,7 +193,7 @@ export default function SwapPanel() {
               ${preset}
             </button>
           ))}
-          {balances && balances.usdc >= MIN_SWAP_USDC && (
+          {spendable !== null && spendable >= MIN_SWAP_USDC && (
             <button type="button" onClick={useMax}>Max</button>
           )}
         </div>
@@ -223,7 +232,7 @@ export default function SwapPanel() {
               {balances && (
                 <>
                   {" · "}{balances.sol.toFixed(3)} SOL
-                  {" · "}<b>${balances.usdc.toFixed(2)} USDC</b>
+                  {" · "}<b>${spendable?.toFixed(2)} USDC</b>
                 </>
               )}
             </span>
@@ -292,9 +301,9 @@ export default function SwapPanel() {
         </p>
       )}
 
-      {connected && shortOfBalance && balances && (
+      {connected && shortOfBalance && spendable !== null && (
         <p className="note waiting">
-          This wallet holds <strong>${balances.usdc.toFixed(2)} USDC</strong> and you have asked to
+          This wallet holds <strong>${spendable.toFixed(2)} USDC</strong> and you have asked to
           spend <strong>${size.toFixed(2)}</strong>. A buy spends USDC — SOL only covers the fee —
           so either lower the amount, press Max, or swap some SOL to USDC first (Phantom's own swap
           does it in one step).
