@@ -36,37 +36,104 @@ export interface TokenInfo {
   holderCount?: number;
 }
 
-const RETRIES = 4;
+/**
+ * Retry policy.
+ *
+ * Jupiter's free tier rate-limits per IP on a window of roughly a minute, so a
+ * short retry budget gives up long before the window resets. Background work
+ * (the cost table) should fail fast and leave the budget alone; a swap the user
+ * explicitly asked for should wait it out.
+ */
+export interface RetryOptions {
+  /** Maximum attempts, including the first. */
+  attempts?: number;
+  /** Give up once waiting this long in total would be exceeded. */
+  maxTotalMs?: number;
+  /** Called before each wait, so the UI can explain the pause. */
+  onRetry?: (info: { attempt: number; attempts: number; waitMs: number; status: number }) => void;
+}
+
+const BACKGROUND: Required<Pick<RetryOptions, "attempts" | "maxTotalMs">> = {
+  attempts: 4,
+  maxTotalMs: 20_000,
+};
+
+/** A user-initiated action is worth outwaiting a rate-limit window for. */
+export const PATIENT: RetryOptions = { attempts: 7, maxTotalMs: 80_000 };
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** The public endpoint rate-limits under load, so retry transient failures. */
-async function getJson<T>(path: string, params: Record<string, string | number>): Promise<T> {
+/** What went wrong, in words a person can act on. */
+function describe(path: string, status: number, statusText: string): string {
+  if (status === 429) {
+    return `Jupiter's free API is rate-limiting this connection (429 on ${path}). ` +
+      `It clears after about a minute.`;
+  }
+  if (status >= 500) return `Jupiter is having trouble (${status} on ${path}).`;
+  return `${path} -> ${status} ${statusText}`;
+}
+
+function backoffMs(attempt: number, res?: Response): number {
+  const header = Number(res?.headers.get("retry-after"));
+  if (Number.isFinite(header) && header > 0) return Math.min(header * 1000, 30_000);
+  // Exponential with jitter, so parallel callers do not retry in lockstep.
+  const base = Math.min(1500 * 2 ** (attempt - 1), 20_000);
+  return Math.round(base * (0.75 + Math.random() * 0.5));
+}
+
+/**
+ * One HTTP call with retries. Returns only an ok response; anything else throws.
+ *
+ * A 4xx that is not 429 will not improve on retry, so it fails immediately --
+ * note this throw is deliberately outside the network try/catch, which used to
+ * swallow it and retry a hopeless request three more times.
+ */
+async function request(url: string, init: RequestInit, retry: RetryOptions = {}): Promise<Response> {
+  const attempts = retry.attempts ?? BACKGROUND.attempts;
+  const maxTotalMs = retry.maxTotalMs ?? BACKGROUND.maxTotalMs;
+  const started = Date.now();
+  const path = new URL(url).pathname;
+
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let res: Response | undefined;
+    try {
+      res = await fetch(url, init);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+
+    if (res) {
+      if (res.ok) return res;
+      if (res.status !== 429 && res.status < 500) {
+        throw new Error(describe(path, res.status, res.statusText));
+      }
+      lastError = new Error(describe(path, res.status, res.statusText));
+    }
+
+    if (attempt === attempts) break;
+
+    const waitMs = backoffMs(attempt, res);
+    if (Date.now() - started + waitMs > maxTotalMs) break;
+
+    retry.onRetry?.({ attempt, attempts, waitMs, status: res?.status ?? 0 });
+    await sleep(waitMs);
+  }
+
+  throw lastError ?? new Error(`${path} failed`);
+}
+
+async function getJson<T>(
+  path: string,
+  params: Record<string, string | number>,
+  retry?: RetryOptions,
+): Promise<T> {
   const url = `${BASE}${path}?${new URLSearchParams(
     Object.entries(params).map(([k, v]) => [k, String(v)]),
   )}`;
-
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= RETRIES; attempt++) {
-    try {
-      const res = await fetch(url, { headers: { "User-Agent": "stocklana/1.0" } });
-      if (res.ok) return (await res.json()) as T;
-      // 4xx other than 429 will not improve on retry.
-      if (res.status !== 429 && res.status < 500) {
-        throw new Error(`${path} -> ${res.status} ${res.statusText}`);
-      }
-      lastError = new Error(`${path} -> ${res.status} ${res.statusText}`);
-      if (res.status === 429) {
-        // Respect Retry-After when the server sends it, else back off hard.
-        const retryAfter = Number(res.headers.get("retry-after"));
-        await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : attempt * 2500);
-        continue;
-      }
-    } catch (err) {
-      lastError = err;
-    }
-    if (attempt < RETRIES) await sleep(attempt * 600);
-  }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  const res = await request(url, {}, retry);
+  return (await res.json()) as T;
 }
 
 /** A single executable quote. `amount` is in the INPUT mint's raw base units. */
@@ -75,13 +142,13 @@ export function quote(
   outputMint: string,
   amount: number | bigint,
   slippageBps = 50,
+  retry?: RetryOptions,
 ): Promise<Quote> {
-  return getJson<Quote>("/swap/v1/quote", {
-    inputMint,
-    outputMint,
-    amount: amount.toString(),
-    slippageBps,
-  });
+  return getJson<Quote>(
+    "/swap/v1/quote",
+    { inputMint, outputMint, amount: amount.toString(), slippageBps },
+    retry,
+  );
 }
 
 export async function searchToken(query: string): Promise<TokenInfo | undefined> {
@@ -104,12 +171,16 @@ export interface SwapBuild {
 export async function buildSwapTransaction(
   quoteResponse: Quote,
   userPublicKey: string,
+  retry?: RetryOptions,
 ): Promise<SwapBuild> {
-  const res = await fetch(`${BASE}/swap/v1/swap`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ quoteResponse, userPublicKey, wrapAndUnwrapSol: true }),
-  });
-  if (!res.ok) throw new Error(`/swap/v1/swap -> ${res.status} ${res.statusText}`);
-  return res.json() as Promise<SwapBuild>;
+  const res = await request(
+    `${BASE}/swap/v1/swap`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quoteResponse, userPublicKey, wrapAndUnwrapSol: true }),
+    },
+    retry,
+  );
+  return (await res.json()) as SwapBuild;
 }

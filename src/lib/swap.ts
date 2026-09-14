@@ -7,7 +7,7 @@
  * account or an exhausted compute budget for free, before any money moves.
  */
 import { VersionedTransaction, type Connection } from "@solana/web3.js";
-import { buildSwapTransaction, quote, routeLabel, type Quote } from "./jupiter";
+import { buildSwapTransaction, PATIENT, quote, routeLabel, type Quote, type RetryOptions } from "./jupiter";
 import { USDC_DECIMALS, USDC_MINT, type XStock } from "./tokens";
 
 export interface PreparedSwap {
@@ -19,15 +19,21 @@ export interface PreparedSwap {
   lastValidBlockHeight: number;
 }
 
-/** Quote a buy and build the unsigned transaction for it. Nothing is sent. */
+/**
+ * Quote a buy and build the unsigned transaction for it. Nothing is sent.
+ *
+ * This is something the user asked for by clicking, so it waits out a
+ * rate-limit window rather than failing in fifteen seconds.
+ */
 export async function prepareBuy(
   token: XStock,
   sizeUsdc: number,
   userPublicKey: string,
+  retry: RetryOptions = PATIENT,
 ): Promise<PreparedSwap> {
   const inRaw = BigInt(sizeUsdc) * 10n ** BigInt(USDC_DECIMALS);
-  const q = await quote(USDC_MINT, token.mint, inRaw);
-  const built = await buildSwapTransaction(q, userPublicKey);
+  const q = await quote(USDC_MINT, token.mint, inRaw, 50, retry);
+  const built = await buildSwapTransaction(q, userPublicKey, retry);
 
   return {
     quote: q,

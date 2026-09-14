@@ -581,3 +581,12 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* the phone-only bar column never shows a header */
 th.phone-bar { display: none; }
+
+/* a rate-limit pause is a normal state, not an error */
+.waiting {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-weight: 600;
+}

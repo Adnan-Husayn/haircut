@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { makeConnection } from "../lib/chain";
 import { connect, eagerConnect, getProvider, signAndSend, walletName } from "../lib/wallet";
 import { explainFailure, prepareBuy, simulate, type PreparedSwap, type SimulationResult } from "../lib/swap";
+import { PATIENT } from "../lib/jupiter";
 import { SIZES_USDC, XSTOCKS } from "../lib/tokens";
 
 type Stage = "idle" | "preparing" | "simulated" | "sending" | "sent" | "error";
@@ -32,6 +33,7 @@ export default function SwapPanel() {
   const [sim, setSim] = useState<SimulationResult | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState<string | null>(null);
 
   const token = XSTOCKS.find((t) => t.symbol === symbol)!;
 
@@ -40,6 +42,7 @@ export default function SwapPanel() {
     setSim(null);
     setSignature(null);
     setError(null);
+    setWaiting(null);
     setStage("idle");
   }
 
@@ -49,7 +52,15 @@ export default function SwapPanel() {
     reset();
     setStage("preparing");
     try {
-      const p = await prepareBuy(token, size, publicKey);
+      const p = await prepareBuy(token, size, publicKey, {
+        ...PATIENT,
+        onRetry: ({ attempt, attempts, waitMs }) =>
+          setWaiting(
+            `Jupiter is rate-limiting. Waiting ${Math.round(waitMs / 1000)}s, ` +
+            `then retrying (attempt ${attempt + 1} of ${attempts}).`,
+          ),
+      });
+      setWaiting(null);
       setPrepared(p);
       const s = await simulate(connection, p.transaction);
       setSim(s);
@@ -57,6 +68,8 @@ export default function SwapPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setStage("error");
+    } finally {
+      setWaiting(null);
     }
   }
 
@@ -160,6 +173,8 @@ export default function SwapPanel() {
           </a>
         </p>
       )}
+
+      {waiting && <p className="note waiting">{waiting}</p>}
 
       {error && <p className="err">{error}</p>}
 
