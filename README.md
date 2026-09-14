@@ -105,6 +105,31 @@ Pyth's 24/7 synthetic equity feeds have no on-chain account at any shard, and He
 endpoints now require auth — so there is no free live on-chain reference price for tokenized
 equities. This is why cost is measured by round trip and not against an oracle.
 
+## It executes
+
+One real mainnet swap, $5 of USDC into AAPLx, signed in Phantom from the deployed page:
+
+**[`2X73jXAmYTeBZVm9SQ3iSpuRP2e96iceJ8qnMbnR4E8FuP8uyYQtSV9Pj5ZfSSpKEhfvpa9PA8o9MhJhtRqLWvFk`](https://solscan.io/tx/2X73jXAmYTeBZVm9SQ3iSpuRP2e96iceJ8qnMbnR4E8FuP8uyYQtSV9Pj5ZfSSpKEhfvpa9PA8o9MhJhtRqLWvFk)**
+
+Slot 447058311, 2026-09-14 19:38:54 UTC, finalized, no error. Fee 0.000105 SOL, 262,538 compute
+units. Routed SolFi V2 + Flux + PancakeSwap — three venues for a $5 order, which is the routing
+fragmentation this whole project is about.
+
+| | |
+|---|---|
+| spent | 5.000000 USDC |
+| received | 1,488,225 base units = **0.01488225 raw** |
+| quoted | 0.014907 raw |
+| slippage against the quote | **−16.6 bps**, inside the 50 bps tolerance |
+| realised price | $335.97 |
+
+The receipt shows the multiplier trap a third time: the RPC's own `uiAmountString` for this
+balance reads `0.01488225` — the *unscaled* figure. Applying the multiplier gives 0.014931, which
+is what a wallet displays. Even the node's "ui amount" is not the amount to show a user.
+
+Every stage is staged and checked: quote, build, simulate against live state, and only then sign.
+Execute stays disabled until a simulation has actually succeeded.
+
 ## The RPC proxy
 
 The staleness panel needs a keyed RPC endpoint; the public mainnet-beta endpoint rate-limits the

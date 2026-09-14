@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { makeConnection } from "../lib/chain";
 import { connect, detectWallets, disconnect, eagerConnect, signAndSend } from "../lib/wallet";
-import { explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
+import { confirmSignature, explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
 import { PATIENT } from "../lib/jupiter";
 import { readMultiplier, toDisplayAmount } from "../lib/scaled";
 import { MIN_SWAP_USDC, SWAP_SIZES_USDC, XSTOCKS } from "../lib/tokens";
@@ -135,9 +135,11 @@ export default function SwapPanel() {
     try {
       const sig = await signAndSend(prepared.transaction);
       setSignature(sig);
-      const bh = await connection.getLatestBlockhash();
-      await connection.confirmTransaction({ signature: sig, ...bh }, "confirmed");
+      await confirmSignature(connection, sig);
       setStage("sent");
+      readBalances(connection, publicKey!)
+        .then(setBalances)
+        .catch(() => {/* the swap already landed; the balance can lag */});
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setStage("error");

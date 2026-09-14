@@ -48,6 +48,43 @@ export async function prepareBuy(
   };
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Wait for a broadcast transaction to confirm, by polling.
+ *
+ * web3.js's confirmTransaction subscribes over a websocket. The RPC proxy
+ * speaks HTTP only, so that subscription points at the public endpoint, and
+ * when it does not arrive the UI sits on "sending..." forever while the
+ * transaction has in fact already finalised -- which is exactly what happened
+ * on the first real swap. Polling getSignatureStatuses uses the same proxied
+ * HTTP path as everything else and cannot silently stall.
+ */
+export async function confirmSignature(
+  connection: Connection,
+  signature: string,
+  timeoutMs = 90_000,
+): Promise<"confirmed" | "finalized"> {
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const { value } = await connection.getSignatureStatuses([signature]);
+    const status = value[0];
+
+    if (status?.err) {
+      throw new Error(`The transaction failed on-chain: ${JSON.stringify(status.err)}`);
+    }
+    if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+      return status.confirmationStatus;
+    }
+    await sleep(2_000);
+  }
+
+  throw new Error(
+    "Not confirmed within 90s. It may still land — the signature above links to the explorer.",
+  );
+}
+
 export interface Balances {
   /** SOL, for fees. */
   sol: number;
