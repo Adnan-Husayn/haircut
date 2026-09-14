@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { makeConnection } from "../lib/chain";
-import { connect, eagerConnect, getProvider, signAndSend, walletName } from "../lib/wallet";
-import { explainFailure, prepareBuy, simulate, type PreparedSwap, type SimulationResult } from "../lib/swap";
+import { connect, disconnect, eagerConnect, getProvider, signAndSend, walletName } from "../lib/wallet";
+import { explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
 import { PATIENT } from "../lib/jupiter";
-import { SIZES_USDC, XSTOCKS } from "../lib/tokens";
+import { SWAP_SIZES_USDC, XSTOCKS } from "../lib/tokens";
 
 type Stage = "idle" | "preparing" | "simulated" | "sending" | "sent" | "error";
 
@@ -17,6 +17,21 @@ export default function SwapPanel() {
     eagerConnect().then((pk) => pk && setPublicKey(pk));
   }, []);
 
+  useEffect(() => {
+    if (!publicKey) { setBalances(null); return; }
+    let cancelled = false;
+    readBalances(connection, publicKey)
+      .then((b) => !cancelled && setBalances(b))
+      .catch(() => {/* balances are a convenience, not a gate */});
+    return () => { cancelled = true; };
+  }, [connection, publicKey]);
+
+  async function onDisconnect() {
+    await disconnect().catch(() => {/* already gone */});
+    setPublicKey(null);
+    reset();
+  }
+
   async function onConnect() {
     try {
       setPublicKey(await connect());
@@ -27,13 +42,14 @@ export default function SwapPanel() {
   }
 
   const [symbol, setSymbol] = useState(XSTOCKS[0].symbol);
-  const [size, setSize] = useState<number>(SIZES_USDC[0]);
+  const [size, setSize] = useState<number>(10);
   const [stage, setStage] = useState<Stage>("idle");
   const [prepared, setPrepared] = useState<PreparedSwap | null>(null);
   const [sim, setSim] = useState<SimulationResult | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<string | null>(null);
+  const [balances, setBalances] = useState<Balances | null>(null);
 
   const token = XSTOCKS.find((t) => t.symbol === symbol)!;
 
@@ -109,7 +125,7 @@ export default function SwapPanel() {
           ))}
         </select>
         <select value={size} onChange={(e) => { setSize(Number(e.target.value)); reset(); }}>
-          {SIZES_USDC.map((s) => (
+          {SWAP_SIZES_USDC.map((s) => (
             <option key={s} value={s}>${s.toLocaleString()} USDC</option>
           ))}
         </select>
@@ -130,8 +146,15 @@ export default function SwapPanel() {
             >
               {stage === "sending" ? "sending…" : "Execute"}
             </button>
-            <span className="muted" style={{ fontSize: ".8rem" }}>
+            <button onClick={onDisconnect}>Disconnect</button>
+            <span className="muted wallet-line">
               {publicKey.slice(0, 4)}…{publicKey.slice(-4)}
+              {balances && (
+                <>
+                  {" · "}{balances.sol.toFixed(3)} SOL
+                  {" · "}<b>${balances.usdc.toFixed(2)} USDC</b>
+                </>
+              )}
             </span>
           </>
         )}
@@ -173,6 +196,14 @@ export default function SwapPanel() {
           <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
             {signature.slice(0, 24)}…
           </a>
+        </p>
+      )}
+
+      {connected && balances && balances.usdc < size && (
+        <p className="note waiting">
+          This wallet holds <strong>${balances.usdc.toFixed(2)} USDC</strong>, and a buy spends
+          USDC — SOL only covers the fee. Either pick a smaller size, or swap some SOL to USDC
+          first (Phantom's own swap does it in one step).
         </p>
       )}
 

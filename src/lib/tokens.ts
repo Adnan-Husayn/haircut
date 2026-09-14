@@ -54,6 +54,15 @@ export const XSTOCKS: XStock[] = [
 /** Trade sizes we quote, in whole USDC. */
 export const SIZES_USDC = [100, 1_000, 10_000] as const;
 
+/**
+ * Sizes offered for a real swap.
+ *
+ * Deliberately not SIZES_USDC: those are measurement sizes chosen to show the
+ * shape of the cost curve, and the smallest of them is $100 of someone's actual
+ * money. A demo swap should be able to be small.
+ */
+export const SWAP_SIZES_USDC = [5, 10, 25, 50, 100] as const;
+
 export function bySymbol(symbol: string): XStock | undefined {
   return XSTOCKS.find((t) => t.symbol === symbol);
 }

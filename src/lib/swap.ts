@@ -6,7 +6,7 @@
  * live state before broadcasting. It catches a failing route, a missing token
  * account or an exhausted compute budget for free, before any money moves.
  */
-import { VersionedTransaction, type Connection } from "@solana/web3.js";
+import { PublicKey, VersionedTransaction, type Connection } from "@solana/web3.js";
 import { buildSwapTransaction, PATIENT, quote, routeLabel, type Quote, type RetryOptions } from "./jupiter";
 import { USDC_DECIMALS, USDC_MINT, type XStock } from "./tokens";
 
@@ -42,6 +42,38 @@ export async function prepareBuy(
     expectedOut: BigInt(q.outAmount),
     lastValidBlockHeight: built.lastValidBlockHeight,
   };
+}
+
+export interface Balances {
+  /** SOL, for fees. */
+  sol: number;
+  /** USDC, which is what a buy actually spends. */
+  usdc: number;
+}
+
+/**
+ * What the connected wallet can actually spend.
+ *
+ * Without this the panel happily offers to buy $100 of a stock with a wallet
+ * holding no USDC at all, and the only feedback is a simulation failure.
+ */
+export async function readBalances(
+  connection: Connection,
+  owner: string,
+): Promise<Balances> {
+  const pubkey = new PublicKey(owner);
+  const [lamports, tokens] = await Promise.all([
+    connection.getBalance(pubkey),
+    connection
+      .getParsedTokenAccountsByOwner(pubkey, { mint: new PublicKey(USDC_MINT) })
+      .catch(() => ({ value: [] as Array<{ account: { data: { parsed: { info: { tokenAmount: { uiAmount: number | null } } } } } }> })),
+  ]);
+
+  const usdc = tokens.value.reduce(
+    (sum, t) => sum + (t.account.data.parsed.info.tokenAmount.uiAmount ?? 0),
+    0,
+  );
+  return { sol: lamports / 1e9, usdc };
 }
 
 export interface SimulationResult {

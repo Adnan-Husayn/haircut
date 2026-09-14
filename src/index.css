@@ -590,3 +590,6 @@ th.phone-bar { display: none; }
   color: var(--ink-2);
   font-weight: 600;
 }
+
+.wallet-line { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.wallet-line b { color: var(--ink); font-weight: 700; }
