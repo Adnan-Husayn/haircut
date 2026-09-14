@@ -29,6 +29,17 @@ export default function SwapPanel() {
     return () => { cancelled = true; };
   }, [connection, publicKey]);
 
+  async function onCopy() {
+    if (!signature) return;
+    try {
+      await navigator.clipboard.writeText(signature);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked; the signature is selectable on screen anyway */
+    }
+  }
+
   async function onDisconnect() {
     await disconnect().catch(() => {/* already gone */});
     setPublicKey(null);
@@ -54,6 +65,7 @@ export default function SwapPanel() {
   const [waiting, setWaiting] = useState<string | null>(null);
   const [balances, setBalances] = useState<Balances | null>(null);
   const [multiplier, setMultiplier] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const token = XSTOCKS.find((t) => t.symbol === symbol)!;
 
@@ -96,6 +108,7 @@ export default function SwapPanel() {
     setPrepared(null);
     setSim(null);
     setSignature(null);
+    setCopied(false);
     setError(null);
     setWaiting(null);
     setStage("idle");
@@ -289,12 +302,22 @@ export default function SwapPanel() {
       )}
 
       {signature && (
-        <p className="accent" style={{ marginTop: "1rem", fontFamily: "var(--mono)", fontSize: ".8rem" }}>
-          {stage === "sent" ? "confirmed" : "sent"} —{" "}
-          <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
-            {signature.slice(0, 24)}…
+        <div className="receipt">
+          <span className={`status${stage === "sent" ? " done" : ""}`}>
+            {stage === "sent" ? "Confirmed" : "Sent · confirming"}
+          </span>
+          {/* The whole signature, not a truncation: this is the thing a person
+              copies into an explorer or pastes into a submission. */}
+          <a
+            className="sig"
+            href={`https://solscan.io/tx/${signature}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {signature}
           </a>
-        </p>
+          <button type="button" onClick={onCopy}>{copied ? "Copied" : "Copy"}</button>
+        </div>
       )}
 
       {connected && !sizeValid && (

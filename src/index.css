@@ -23,6 +23,9 @@
   --red: #e2231a;
 
   --sans: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* A signature is a 88-character base58 string; a system mono renders it
+     legibly and costs no extra font request. */
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --display: "Archivo Black", "Archivo", sans-serif;
 
   --gutter: 32px;
@@ -606,3 +609,37 @@ th.phone-bar { display: none; }
 .presets { display: flex; gap: 6px; flex-wrap: wrap; }
 .presets button { padding: 8px 10px; font-size: 12px; }
 .presets button.on { background: var(--ink); color: var(--paper); }
+
+
+/* the transaction receipt */
+.receipt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 16px var(--gutter);
+  border-top: 1px solid var(--rule);
+}
+.receipt .status {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px solid currentColor;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.receipt .status.done { color: var(--red); }
+.receipt .sig {
+  flex: 1 1 340px;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  text-decoration-color: var(--rule-2);
+}
+.receipt .sig:hover { text-decoration-color: var(--red); }
+.receipt button { padding: 6px 11px; font-size: 11px; }
