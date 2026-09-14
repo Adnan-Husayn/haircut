@@ -1,0 +1,25 @@
+Haircut
+Copyright (c) 2026 Adnan Husayn
+
+This product includes third-party software. Direct production dependencies:
+
+  @solana/web3.js  1.99.0      MIT
+  buffer           6.0.3       MIT
+  react            19.3.0      MIT
+  react-dom        19.3.0      MIT
+
+Of particular note:
+
+  rpc-websockets is licensed LGPL-3.0-only. It is not a direct dependency; it
+  arrives transitively through @solana/web3.js, which bundles it for websocket
+  subscriptions. This application does not use those subscriptions -- it
+  confirms transactions by polling getSignatureStatuses over HTTP -- but the
+  package is still present in the dependency graph and in the built bundle.
+
+  The LGPL applies to that component alone and does not affect the licence of
+  this project's own source, which is MIT. Recipients of a build that includes
+  it are entitled to the LGPL's rights with respect to that component; its
+  source is published at https://github.com/elpheria/rpc-websockets
+
+Full licence texts for each dependency are included in that package's directory
+under node_modules after `npm install`.

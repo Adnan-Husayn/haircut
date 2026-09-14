@@ -217,6 +217,23 @@ Copy `.env.example` to `.env` and set `RPC_HTTP` for the scripts. For the dev se
 build, so that key cannot reach `dist/`. Deployed, the key lives only in the Vercel environment
 and is read by `api/rpc.ts`.
 
+## Licence
+
+The **source is MIT** (see `LICENSE`) — use it, fork it, build on the methodology.
+
+The **measurement data is CC BY 4.0** (see `data/LICENSE`), not MIT. Those are timestamped
+observations spanning the closed→open transition of a market; they cannot be reconstructed after
+the fact from any public source, and MIT is a software licence that fits a dataset poorly. CC BY
+asks only that you credit them.
+
+`NOTICE` lists third-party dependencies. One is worth knowing about: `rpc-websockets` is
+LGPL-3.0-only, arriving transitively through `@solana/web3.js`. This application does not use its
+websocket subscriptions — transactions are confirmed by polling over HTTP — but the package is
+still in the dependency graph, as it is for every Solana app built on web3.js.
+
+Nothing here is investment advice. It is a measurement of what public APIs returned at a moment in
+time, and it executes trades only when you click a button that says so.
+
 ## Hackathon
 
 Built for Stocklana — $100,000, funded by the Solana Foundation.
