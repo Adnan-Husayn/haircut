@@ -2,7 +2,9 @@
 
 **Every tokenized stock takes a haircut. Nobody tells you how big.**
 
-**Live:** https://stocklana-omega.vercel.app
+**Live:** https://haircut-fi.vercel.app
+
+<sub>`stocklana-omega.vercel.app` is the same deployment under the project's original auto-generated alias, kept for development checks.</sub>
 
 Haircut measures what trading a tokenized stock on Solana actually costs — at your size, across
 the venues your trade really routes through — before you trade.
