@@ -643,3 +643,24 @@ th.phone-bar { display: none; }
 }
 .receipt .sig:hover { text-decoration-color: var(--red); }
 .receipt button { padding: 6px 11px; font-size: 11px; }
+
+/* venue split */
+.legs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.legs li {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.leg-bar {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  background: var(--ink);
+  min-width: 2px;
+}
+.leg-name { flex: 1 1 auto; }
+.leg-pct { font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 12px; }

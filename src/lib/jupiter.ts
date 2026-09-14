@@ -156,6 +156,42 @@ export async function searchToken(query: string): Promise<TokenInfo | undefined>
   return hits?.[0];
 }
 
+export interface RouteLeg {
+  label: string;
+  /** Share of the trade sent through this venue. */
+  percent: number;
+}
+
+/**
+ * The venue split behind a quote.
+ *
+ * Percentages only mean "share of the trade" when every step goes straight from
+ * the input mint to the output mint -- a parallel split. A multi-hop route
+ * chains through an intermediate mint, and each hop's percent is a share of
+ * that hop, not of the trade, so summing them would invent a number. In that
+ * case the venues are returned without percentages rather than with wrong ones.
+ */
+export function routeSplit(q: Quote): { legs: RouteLeg[]; isSplit: boolean } {
+  const allDirect = q.routePlan.every(
+    (s) => s.swapInfo.inputMint === q.inputMint && s.swapInfo.outputMint === q.outputMint,
+  );
+
+  if (!allDirect) {
+    const labels = [...new Set(q.routePlan.map((s) => s.swapInfo.label))];
+    return { legs: labels.map((label) => ({ label, percent: 0 })), isSplit: false };
+  }
+
+  const byVenue = new Map<string, number>();
+  for (const step of q.routePlan) {
+    byVenue.set(step.swapInfo.label, (byVenue.get(step.swapInfo.label) ?? 0) + step.percent);
+  }
+  const legs = [...byVenue]
+    .map(([label, percent]) => ({ label, percent }))
+    .sort((a, b) => b.percent - a.percent);
+
+  return { legs, isSplit: true };
+}
+
 /** Distinct venue labels in route order, e.g. "Whirlpool + Raydium CLMM". */
 export function routeLabel(q: Quote): string {
   return [...new Set(q.routePlan.map((s) => s.swapInfo.label))].join(" + ");
@@ -183,4 +219,31 @@ export async function buildSwapTransaction(
     retry,
   );
   return (await res.json()) as SwapBuild;
+}
+
+/**
+ * SOL in USD, for expressing a lamport fee against the size of a trade.
+ *
+ * Cached: this is needed once per prepared swap and the free tier is shared
+ * with the quotes the rest of the page depends on.
+ */
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+const USDC_MINT_ADDR = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const PRICE_TTL_MS = 5 * 60 * 1000;
+
+let cachedSolPrice: { usd: number; at: number } | null = null;
+
+export async function solPriceUsd(): Promise<number | null> {
+  if (cachedSolPrice && Date.now() - cachedSolPrice.at < PRICE_TTL_MS) {
+    return cachedSolPrice.usd;
+  }
+  try {
+    const q = await quote(SOL_MINT, USDC_MINT_ADDR, 1_000_000_000n);
+    const usd = Number(q.outAmount) / 1e6;
+    if (!Number.isFinite(usd) || usd <= 0) return null;
+    cachedSolPrice = { usd, at: Date.now() };
+    return usd;
+  } catch {
+    return null;
+  }
 }

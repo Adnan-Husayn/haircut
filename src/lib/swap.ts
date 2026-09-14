@@ -7,13 +7,24 @@
  * account or an exhausted compute budget for free, before any money moves.
  */
 import { PublicKey, VersionedTransaction, type Connection } from "@solana/web3.js";
-import { buildSwapTransaction, PATIENT, quote, routeLabel, type Quote, type RetryOptions } from "./jupiter";
+import { buildSwapTransaction, PATIENT, quote, routeLabel, routeSplit, type Quote, type RetryOptions, type RouteLeg } from "./jupiter";
 import { USDC_DECIMALS, USDC_MINT, type XStock } from "./tokens";
 
 export interface PreparedSwap {
   quote: Quote;
   transaction: VersionedTransaction;
   route: string;
+  /** Venues this trade is split across, largest share first. */
+  legs: RouteLeg[];
+  /** False when the route hops through an intermediate mint, so shares are not comparable. */
+  isSplit: boolean;
+  /**
+   * What moving this pool costs, as a fraction. This is money you actually lose,
+   * and is not the same thing as the slippage tolerance below.
+   */
+  priceImpactPct: number;
+  /** The worst execution that will be accepted. A cap, not a cost. */
+  slippageBps: number;
   /** Raw base units of the xStock the quote expects to deliver. */
   expectedOut: bigint;
   lastValidBlockHeight: number;
@@ -39,10 +50,16 @@ export async function prepareBuy(
   const q = await quote(USDC_MINT, token.mint, inRaw, 50, retry);
   const built = await buildSwapTransaction(q, userPublicKey, retry);
 
+  const split = routeSplit(q);
+
   return {
     quote: q,
     transaction: VersionedTransaction.deserialize(base64ToBytes(built.swapTransaction)),
     route: routeLabel(q),
+    legs: split.legs,
+    isSplit: split.isSplit,
+    priceImpactPct: Number(q.priceImpactPct) || 0,
+    slippageBps: q.slippageBps,
     expectedOut: BigInt(q.outAmount),
     lastValidBlockHeight: built.lastValidBlockHeight,
   };
@@ -115,6 +132,25 @@ export async function readBalances(
     0,
   );
   return { sol: lamports / 1e9, usdc };
+}
+
+/**
+ * What the network will charge for this transaction.
+ *
+ * getFeeForMessage prices the message as built, so it already includes whatever
+ * compute-budget instructions Jupiter put in it -- base fee and priority fee
+ * together, rather than the base fee alone.
+ */
+export async function estimateNetworkFee(
+  connection: Connection,
+  tx: VersionedTransaction,
+): Promise<number | null> {
+  try {
+    const res = await connection.getFeeForMessage(tx.message, "confirmed");
+    return res.value ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export interface SimulationResult {

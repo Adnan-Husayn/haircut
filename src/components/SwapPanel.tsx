@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { makeConnection } from "../lib/chain";
 import { connect, detectWallets, disconnect, eagerConnect, signAndSend } from "../lib/wallet";
-import { confirmSignature, explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
-import { PATIENT } from "../lib/jupiter";
+import { confirmSignature, estimateNetworkFee, explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
+import { PATIENT, solPriceUsd } from "../lib/jupiter";
 import { readMultiplier, toDisplayAmount } from "../lib/scaled";
 import { MIN_SWAP_USDC, SWAP_SIZES_USDC, XSTOCKS } from "../lib/tokens";
 
@@ -66,6 +66,8 @@ export default function SwapPanel() {
   const [balances, setBalances] = useState<Balances | null>(null);
   const [multiplier, setMultiplier] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [feeLamports, setFeeLamports] = useState<number | null>(null);
+  const [solUsd, setSolUsd] = useState<number | null>(null);
 
   const token = XSTOCKS.find((t) => t.symbol === symbol)!;
 
@@ -109,6 +111,7 @@ export default function SwapPanel() {
     setSim(null);
     setSignature(null);
     setCopied(false);
+    setFeeLamports(null);
     setError(null);
     setWaiting(null);
     setStage("idle");
@@ -130,6 +133,12 @@ export default function SwapPanel() {
       });
       setWaiting(null);
       setPrepared(p);
+
+      // Priced alongside the dry run: a flat network fee is trivial on a large
+      // order and dominant on a small one, so it is worth stating outright.
+      estimateNetworkFee(connection, p.transaction).then(setFeeLamports);
+      solPriceUsd().then(setSolUsd);
+
       const s = await simulate(connection, p.transaction);
       setSim(s);
       setStage("simulated");
@@ -257,7 +266,27 @@ export default function SwapPanel() {
 
       {prepared && (
         <dl className="kv">
-          <div><dt>Route</dt><dd>{prepared.route}</dd></div>
+          <div>
+            <dt>Route</dt>
+            <dd>
+              {prepared.isSplit ? (
+                <ul className="legs">
+                  {prepared.legs.map((leg) => (
+                    <li key={leg.label}>
+                      <span className="leg-bar" style={{ width: `${leg.percent}%` }} />
+                      <span className="leg-name">{leg.label}</span>
+                      <span className="leg-pct">{leg.percent}%</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <>
+                  {prepared.route}
+                  <span className="sub-note">routed through an intermediate token</span>
+                </>
+              )}
+            </dd>
+          </div>
           <div>
             <dt>Expected out</dt>
             <dd>
@@ -271,6 +300,37 @@ export default function SwapPanel() {
                       {rawTokens?.toFixed(6)} raw × {multiplier.toFixed(4)} scaled-UI multiplier
                     </span>
                   )}
+                </>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Price impact</dt>
+            <dd>
+              {(prepared.priceImpactPct * 100).toFixed(3)}%
+              <span className="sub-note">you pay this — the cost of moving this pool</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Slippage limit</dt>
+            <dd>
+              {(prepared.slippageBps / 100).toFixed(2)}%
+              <span className="sub-note">a cap, not a cost — the trade fails past this</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Network fee</dt>
+            <dd>
+              {feeLamports === null ? (
+                <span className="muted">pricing…</span>
+              ) : (
+                <>
+                  {(feeLamports / 1e9).toFixed(6)} SOL
+                  <span className="sub-note">
+                    {solUsd
+                      ? `$${((feeLamports / 1e9) * solUsd).toFixed(4)} — ${(((feeLamports / 1e9) * solUsd / size) * 10_000).toFixed(1)} bps of this trade`
+                      : "flat, so it dominates small trades and vanishes on large ones"}
+                  </span>
                 </>
               )}
             </dd>
