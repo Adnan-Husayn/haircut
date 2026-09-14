@@ -2,7 +2,8 @@
 
 **Every tokenized stock takes a haircut. Nobody tells you how big.**
 
-**Live:** https://haircut-fi.vercel.app
+**Live:** https://haircut-fi.vercel.app  
+**Source:** https://github.com/Adnan-Husayn/haircut
 
 <sub>`stocklana-omega.vercel.app` is the same deployment under the project's original auto-generated alias, kept for development checks.</sub>
 
