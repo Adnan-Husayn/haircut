@@ -63,6 +63,9 @@ export const SIZES_USDC = [100, 1_000, 10_000] as const;
  */
 export const SWAP_SIZES_USDC = [5, 10, 25, 50, 100] as const;
 
+/** Below this a quote is not meaningfully executable. */
+export const MIN_SWAP_USDC = 1;
+
 export function bySymbol(symbol: string): XStock | undefined {
   return XSTOCKS.find((t) => t.symbol === symbol);
 }

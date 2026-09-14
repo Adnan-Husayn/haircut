@@ -31,7 +31,11 @@ export async function prepareBuy(
   userPublicKey: string,
   retry: RetryOptions = PATIENT,
 ): Promise<PreparedSwap> {
-  const inRaw = BigInt(sizeUsdc) * 10n ** BigInt(USDC_DECIMALS);
+  // Round to whole base units first. BigInt() throws outright on a fractional
+  // number, so any amount with cents in it would have failed here.
+  const inRaw = BigInt(Math.round(sizeUsdc * 10 ** USDC_DECIMALS));
+  if (inRaw <= 0n) throw new Error("Enter an amount greater than zero.");
+
   const q = await quote(USDC_MINT, token.mint, inRaw, 50, retry);
   const built = await buildSwapTransaction(q, userPublicKey, retry);
 

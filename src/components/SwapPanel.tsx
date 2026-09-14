@@ -4,7 +4,7 @@ import { connect, detectWallets, disconnect, eagerConnect, signAndSend } from ".
 import { explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
 import { PATIENT } from "../lib/jupiter";
 import { readMultiplier, toDisplayAmount } from "../lib/scaled";
-import { SWAP_SIZES_USDC, XSTOCKS } from "../lib/tokens";
+import { MIN_SWAP_USDC, SWAP_SIZES_USDC, XSTOCKS } from "../lib/tokens";
 
 type Stage = "idle" | "preparing" | "simulated" | "sending" | "sent" | "error";
 
@@ -45,7 +45,7 @@ export default function SwapPanel() {
   }
 
   const [symbol, setSymbol] = useState(XSTOCKS[0].symbol);
-  const [size, setSize] = useState<number>(10);
+  const [amountText, setAmountText] = useState("10");
   const [stage, setStage] = useState<Stage>("idle");
   const [prepared, setPrepared] = useState<PreparedSwap | null>(null);
   const [sim, setSim] = useState<SimulationResult | null>(null);
@@ -56,6 +56,22 @@ export default function SwapPanel() {
   const [multiplier, setMultiplier] = useState<number | null>(null);
 
   const token = XSTOCKS.find((t) => t.symbol === symbol)!;
+
+  const size = Number(amountText);
+  const sizeValid = Number.isFinite(size) && size >= MIN_SWAP_USDC;
+  const shortOfBalance = balances !== null && sizeValid && size > balances.usdc;
+  const canQuote = sizeValid && !shortOfBalance;
+
+  function setAmount(next: string) {
+    setAmountText(next);
+    reset();
+  }
+
+  /** Floor, so "Max" never asks to spend a fraction of a cent more than exists. */
+  function useMax() {
+    if (!balances) return;
+    setAmount((Math.floor(balances.usdc * 100) / 100).toFixed(2));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -144,11 +160,34 @@ export default function SwapPanel() {
             <option key={t.symbol} value={t.symbol}>{t.symbol}</option>
           ))}
         </select>
-        <select value={size} onChange={(e) => { setSize(Number(e.target.value)); reset(); }}>
-          {SWAP_SIZES_USDC.map((s) => (
-            <option key={s} value={s}>${s.toLocaleString()} USDC</option>
+        <div className="amount">
+          <span>$</span>
+          <input
+            type="number"
+            min={MIN_SWAP_USDC}
+            step="0.01"
+            inputMode="decimal"
+            aria-label="Amount of USDC to swap"
+            value={amountText}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
+
+        <div className="presets">
+          {SWAP_SIZES_USDC.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={size === preset ? "on" : ""}
+              onClick={() => setAmount(String(preset))}
+            >
+              ${preset}
+            </button>
           ))}
-        </select>
+          {balances && balances.usdc >= MIN_SWAP_USDC && (
+            <button type="button" onClick={useMax}>Max</button>
+          )}
+        </div>
 
         {!connected ? (
           <>
@@ -165,7 +204,10 @@ export default function SwapPanel() {
           </>
         ) : (
           <>
-            <button onClick={onPrepare} disabled={stage === "preparing" || stage === "sending"}>
+            <button
+              onClick={onPrepare}
+              disabled={!canQuote || stage === "preparing" || stage === "sending"}
+            >
               {stage === "preparing" ? "simulating…" : "Quote & simulate"}
             </button>
             <button
@@ -244,11 +286,18 @@ export default function SwapPanel() {
         </p>
       )}
 
-      {connected && balances && balances.usdc < size && (
+      {connected && !sizeValid && (
         <p className="note waiting">
-          This wallet holds <strong>${balances.usdc.toFixed(2)} USDC</strong>, and a buy spends
-          USDC — SOL only covers the fee. Either pick a smaller size, or swap some SOL to USDC
-          first (Phantom's own swap does it in one step).
+          Enter an amount of at least ${MIN_SWAP_USDC.toFixed(2)} USDC.
+        </p>
+      )}
+
+      {connected && shortOfBalance && balances && (
+        <p className="note waiting">
+          This wallet holds <strong>${balances.usdc.toFixed(2)} USDC</strong> and you have asked to
+          spend <strong>${size.toFixed(2)}</strong>. A buy spends USDC — SOL only covers the fee —
+          so either lower the amount, press Max, or swap some SOL to USDC first (Phantom's own swap
+          does it in one step).
         </p>
       )}
 

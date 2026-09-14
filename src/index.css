@@ -602,3 +602,7 @@ th.phone-bar { display: none; }
   color: var(--faint);
   font-variant-numeric: tabular-nums;
 }
+
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.presets button { padding: 8px 10px; font-size: 12px; }
+.presets button.on { background: var(--ink); color: var(--paper); }
