@@ -43,10 +43,32 @@ results — we measured METAx at *−4.4 bps*, i.e. buying below mid. Round-trip
 question: it needs no reference price at all.
 
 **2. xStocks are not `raw / 10^decimals`.** They use the Token-2022 `scaledUiAmount` extension for
-dividends and stock splits, so the share-equivalent amount is `raw × multiplier`. Measured
-multipliers: SPYx 1.0039, AAPLx ~1.0019–1.0027 *and moving between reads*, METAx 1.0016,
-TSLAx exactly 1.0000. Any integration doing naive decimal conversion is wrong by up to 39 bps.
-In a round trip both legs are raw, so the multiplier cancels exactly.
+dividends and stock splits, so the share-equivalent amount is `raw × multiplier`. Read from the
+mints on-chain:
+
+| token | multiplier in force | error if ignored | superseded on |
+|-------|--------------------:|-----------------:|--------------:|
+| SPYx   | 1.0057146 | 57.1 bps | 2026-06-18 |
+| AAPLx  | 1.0032690 | 32.7 bps | 2026-08-08 |
+| GOOGLx | 1.0023773 | 23.8 bps | 2026-09-04 |
+| METAx  | 1.0022983 | 23.0 bps | 2026-06-14 |
+| NVDAx  | 1.0017012 | 17.0 bps | 2026-09-10 |
+| TSLAx  | 1.0000000 |   0.0 bps | — |
+| MSTRx  | 1.0000000 |   0.0 bps | — |
+| AMZNx  | 1.0000000 |   0.0 bps | — |
+
+Ignoring the multiplier misstates a holding by up to **57 bps** — larger than the entire execution
+cost of most of these tokens at $10,000.
+
+There is a second trap inside the first. The extension carries *two* values, `multiplier` and
+`newMultiplier`, with an effective timestamp. **On every xStock that has one, the pending value has
+already taken over** — AAPLx reads 1.0026642 in `multiplier` and 1.0032690 in `newMultiplier`,
+effective since 8 August. Reading the obvious field gives a number that is stale by 6 bps and
+looks perfectly plausible.
+
+In a round trip both legs are quoted in raw base units, so the multiplier cancels exactly and the
+cost measurement never touches it. It matters only where a token amount is shown to a person —
+which is why the swap panel applies it, and why that panel now agrees with Phantom to ~1 bps.
 
 Sanity check that the metric is sound: round-trip cost is monotonic in pool depth, and monotonic
 in trade size, for every token. The earlier index-based numbers were neither.
