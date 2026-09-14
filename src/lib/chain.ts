@@ -2,26 +2,38 @@
  * Solana connection.
  *
  * The public mainnet-beta endpoint rate-limits aggressively under load, so
- * scripts should set RPC_HTTP (loaded from .env via `node --env-file`).
+ * anything doing real work wants a keyed provider.
  *
  * SECURITY: anything named VITE_* is inlined into the client bundle at build
- * time and is therefore public. Do NOT set VITE_RPC_HTTP in a deployed build
- * unless the key is meant to be world-readable. The browser only needs a single
- * getMultipleAccounts call for the staleness panel, which the public endpoint
- * serves comfortably -- leaving VITE_RPC_HTTP unset in production is the correct
- * default. It exists for local development convenience only.
+ * time and is therefore public. The key must never reach the browser, so the
+ * deployed page does not hold one -- it posts to a same-origin proxy
+ * (api/rpc.ts) that holds the key server-side and forwards only the RPC
+ * methods this application actually calls.
+ *
+ *   browser, deployed  ->  /api/rpc  ->  keyed provider
+ *   browser, local dev ->  VITE_RPC_HTTP directly (convenience only)
+ *   node scripts       ->  RPC_HTTP from .env
  */
 import { Connection } from "@solana/web3.js";
 
 const PUBLIC_FALLBACK = "https://api.mainnet-beta.solana.com";
+const PUBLIC_WS = "wss://api.mainnet-beta.solana.com/";
+const PROXY_PATH = "/api/rpc";
+
+const inBrowser = typeof window !== "undefined" && typeof window.location !== "undefined";
 
 export function rpcUrl(): string {
   const fromVite =
     typeof import.meta !== "undefined"
       ? (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_RPC_HTTP
       : undefined;
+  if (fromVite) return fromVite;
+
+  // Deployed browser: no credential here, so go through the proxy.
+  if (inBrowser) return new URL(PROXY_PATH, window.location.origin).toString();
+
   const fromNode = typeof process !== "undefined" ? process.env?.RPC_HTTP : undefined;
-  return fromVite ?? fromNode ?? PUBLIC_FALLBACK;
+  return fromNode ?? PUBLIC_FALLBACK;
 }
 
 export function isPublicFallback(): boolean {
@@ -46,5 +58,14 @@ export function rpcDisplay(): string {
 }
 
 export function makeConnection(): Connection {
-  return new Connection(rpcUrl(), { commitment: "confirmed" });
+  const endpoint = rpcUrl();
+
+  // The proxy speaks HTTP only. Left to itself web3.js would derive a websocket
+  // URL on this same origin, where nothing is listening, and confirming a swap
+  // would hang. Subscriptions go to the public websocket instead -- one socket,
+  // no credential required.
+  if (endpoint.endsWith(PROXY_PATH)) {
+    return new Connection(endpoint, { commitment: "confirmed", wsEndpoint: PUBLIC_WS });
+  }
+  return new Connection(endpoint, { commitment: "confirmed" });
 }
