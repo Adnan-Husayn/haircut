@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { makeConnection } from "../lib/chain";
-import { connect, disconnect, eagerConnect, getProvider, signAndSend, walletName } from "../lib/wallet";
+import { connect, detectWallets, disconnect, eagerConnect, signAndSend } from "../lib/wallet";
 import { explainFailure, prepareBuy, readBalances, simulate, type Balances, type PreparedSwap, type SimulationResult } from "../lib/swap";
 import { PATIENT } from "../lib/jupiter";
+import { readMultiplier, toDisplayAmount } from "../lib/scaled";
 import { SWAP_SIZES_USDC, XSTOCKS } from "../lib/tokens";
 
 type Stage = "idle" | "preparing" | "simulated" | "sending" | "sent" | "error";
@@ -11,7 +12,9 @@ export default function SwapPanel() {
   const [connection] = useState(() => makeConnection());
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const connected = publicKey !== null;
-  const hasWallet = getProvider() !== null;
+  const wallets = detectWallets();
+  const hasWallet = wallets.length > 0;
+  const [choice, setChoice] = useState<string>("");
 
   useEffect(() => {
     eagerConnect().then((pk) => pk && setPublicKey(pk));
@@ -34,7 +37,7 @@ export default function SwapPanel() {
 
   async function onConnect() {
     try {
-      setPublicKey(await connect());
+      setPublicKey(await connect(choice || undefined));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -50,8 +53,19 @@ export default function SwapPanel() {
   const [error, setError] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<string | null>(null);
   const [balances, setBalances] = useState<Balances | null>(null);
+  const [multiplier, setMultiplier] = useState<number | null>(null);
 
   const token = XSTOCKS.find((t) => t.symbol === symbol)!;
+
+  useEffect(() => {
+    let cancelled = false;
+    setMultiplier(null);
+    readMultiplier(connection, token.mint)
+      .then((m) => !cancelled && setMultiplier(m))
+      .catch(() => !cancelled && setMultiplier(1));
+    return () => { cancelled = true; };
+  }, [connection, token.mint]);
+
 
   function reset() {
     setPrepared(null);
@@ -105,9 +119,15 @@ export default function SwapPanel() {
     }
   }
 
-  const expectedTokens = prepared
-    ? Number(prepared.expectedOut) / 10 ** token.decimals
-    : null;
+  // Jupiter returns raw base units. A wallet displays raw x multiplier, and per
+  // the xStocks docs that scaled figure is the one to show a person -- so this
+  // used to disagree with Phantom by the multiplier, on the one screen where a
+  // token amount is put in front of someone.
+  const expectedTokens =
+    prepared && multiplier !== null
+      ? toDisplayAmount(prepared.expectedOut, token.decimals, multiplier)
+      : null;
+  const rawTokens = prepared ? Number(prepared.expectedOut) / 10 ** token.decimals : null;
 
   return (
     <div className="panel">
@@ -131,9 +151,18 @@ export default function SwapPanel() {
         </select>
 
         {!connected ? (
-          <button onClick={onConnect} disabled={!hasWallet}>
-            {hasWallet ? `Connect ${walletName()}` : "No wallet detected"}
-          </button>
+          <>
+            {wallets.length > 1 && (
+              <select value={choice} onChange={(e) => setChoice(e.target.value)}>
+                {wallets.map((w) => <option key={w.name} value={w.name}>{w.name}</option>)}
+              </select>
+            )}
+            <button onClick={onConnect} disabled={!hasWallet}>
+              {hasWallet
+                ? `Connect ${choice || wallets[0].name}`
+                : "No Solana wallet detected"}
+            </button>
+          </>
         ) : (
           <>
             <button onClick={onPrepare} disabled={stage === "preparing" || stage === "sending"}>
@@ -163,7 +192,23 @@ export default function SwapPanel() {
       {prepared && (
         <dl className="kv">
           <div><dt>Route</dt><dd>{prepared.route}</dd></div>
-          <div><dt>Expected out</dt><dd>{expectedTokens?.toFixed(6)} {symbol}</dd></div>
+          <div>
+            <dt>Expected out</dt>
+            <dd>
+              {expectedTokens === null ? (
+                <span className="muted">reading multiplier…</span>
+              ) : (
+                <>
+                  {expectedTokens.toFixed(6)} {symbol}
+                  {multiplier !== null && multiplier !== 1 && (
+                    <span className="sub-note">
+                      {rawTokens?.toFixed(6)} raw × {multiplier.toFixed(4)} scaled-UI multiplier
+                    </span>
+                  )}
+                </>
+              )}
+            </dd>
+          </div>
           <div>
             <dt>Simulation</dt>
             <dd>

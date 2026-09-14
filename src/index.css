@@ -593,3 +593,12 @@ th.phone-bar { display: none; }
 
 .wallet-line { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
 .wallet-line b { color: var(--ink); font-weight: 700; }
+
+.sub-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
