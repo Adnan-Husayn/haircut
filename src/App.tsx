@@ -12,6 +12,32 @@ import { SIZES_USDC, XSTOCKS } from "./lib/tokens";
 const PAUSE_MS = 250;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** The size the page leads with, and the size everything is ranked on. */
+const RANK_SIZE = Math.max(...SIZES_USDC);
+
+const costInDollars = (t: RoundTrip) => (t.roundTripBps / 10_000) * t.sizeUsdc;
+
+/** Cheapest against dearest at the headline size, or null until data arrives. */
+function spread(trips: RoundTrip[]) {
+  const atRank = trips
+    .filter((t) => t.sizeUsdc === RANK_SIZE)
+    .sort((a, b) => a.roundTripBps - b.roundTripBps);
+  if (atRank.length < 2) return null;
+
+  const best = atRank[0];
+  const worst = atRank[atRank.length - 1];
+  if (best.roundTripBps <= 0) return null;
+
+  return {
+    size: RANK_SIZE,
+    bestSymbol: best.symbol,
+    worstSymbol: worst.symbol,
+    bestCost: costInDollars(best),
+    worstCost: costInDollars(worst),
+    ratio: Math.round(worst.roundTripBps / best.roundTripBps),
+  };
+}
+
 export default function App() {
   const [trips, setTrips] = useState<RoundTrip[]>([]);
   const [liquidity, setLiquidity] = useState<Map<string, number>>(new Map());
@@ -81,14 +107,39 @@ export default function App() {
     if (implied) marketPrice.set(token.symbol, implied);
   }
 
+  // The hero is the whole argument in one figure: the dearest and cheapest way
+  // to put the same money into equities, in the same minute.
+  const headline = spread(trips);
+
   return (
     <div className="wrap">
       <header className="masthead">
-        <h1>Haircut</h1>
-        <p className="tagline">
-          Every tokenized stock takes a haircut.<br />Nobody tells you how big.
-        </p>
-        <div className="rule" />
+        <div className="left">
+          <h1>Haircut</h1>
+          <p className="tagline">
+            Every tokenized stock takes one. Buy ${RANK_SIZE.toLocaleString()}, sell back exactly
+            what you got, and count what never came home. That gap is the haircut — and nothing
+            tells you how big it is before you trade.
+          </p>
+        </div>
+        <div className="right">
+          {headline ? (
+            <>
+              <div className="kick">
+                Same ${headline.size.toLocaleString()} · same minute · {headline.ratio}× apart
+              </div>
+              <div className="headline-figure">
+                ${headline.worstCost.toFixed(2)}
+                <span className="gloss">
+                  {headline.worstSymbol} round trip. The identical trade in {headline.bestSymbol}{" "}
+                  costs ${headline.bestCost.toFixed(2)}.
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="kick">measuring…</div>
+          )}
+        </div>
       </header>
       <p className="sub">
         Measured, not quoted: buy $N of the token, then immediately sell the exact amount

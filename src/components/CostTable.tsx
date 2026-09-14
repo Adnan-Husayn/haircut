@@ -1,13 +1,7 @@
 import type { RoundTrip } from "../lib/cost";
 import { SIZES_USDC, XSTOCKS } from "../lib/tokens";
 
-/**
- * Cost as intensity of one hue rather than a green/amber/red rainbow.
- *
- * Cost is a single quantity, so it gets a single visual channel. Dim means
- * cheap and unremarkable; the accent is spent only where a trade is genuinely
- * expensive, which is what a reader should look at first.
- */
+/** Cost gets one visual channel: black until a trade is genuinely dear, then red. */
 function costClass(bps: number): string {
   if (bps < 5) return "c1";
   if (bps < 15) return "c2";
@@ -15,13 +9,27 @@ function costClass(bps: number): string {
   return "c4";
 }
 
-function Cell({ trip, label }: { trip?: RoundTrip; label: string }) {
-  if (!trip) return <td data-label={label} className="c0">—</td>;
+/** Bars are read against a fixed 80 bps span so a row's length means the same thing every day. */
+const BAR_SPAN_BPS = 80;
+const HOT_BPS = 50;
+
+const money = (n: number) => `$${n.toLocaleString()}`;
+
+function Figure({ trip }: { trip?: RoundTrip }) {
+  if (!trip) return <span className="c0">—</span>;
   return (
-    <td data-label={label} className={costClass(trip.roundTripBps)}>
-      {trip.roundTripBps.toFixed(1)}
+    <>
+      <span className={costClass(trip.roundTripBps)}>{trip.roundTripBps.toFixed(1)}</span>
       <span className="unit">bps</span>
-    </td>
+    </>
+  );
+}
+
+function Bar({ bps, span }: { bps: number; span: number }) {
+  return (
+    <span className="bar-track">
+      <span className="bar-fill" style={{ width: `${Math.min((bps / span) * 100, 100)}%` }} />
+    </span>
   );
 }
 
@@ -32,7 +40,9 @@ export default function CostTable({
   trips: RoundTrip[];
   liquidity: Map<string, number>;
 }) {
-  const rankSize = Math.max(...SIZES_USDC);
+  const sizes = [...SIZES_USDC].sort((a, b) => a - b);
+  const rankSize = sizes[sizes.length - 1];
+  const secondary = sizes.slice(0, -1);
 
   const rows = XSTOCKS.map((token) => {
     const group = trips.filter((t) => t.symbol === token.symbol);
@@ -42,45 +52,57 @@ export default function CostTable({
     .filter((r) => r.group.length > 0)
     .sort((a, b) => a.rankBps - b.rankBps);
 
-  const worst = Math.max(...rows.map((r) => (isFinite(r.rankBps) ? r.rankBps : 0)), 1);
+  // Never clip: if something ever costs more than the nominal span, widen it.
+  const worst = Math.max(...rows.map((r) => (isFinite(r.rankBps) ? r.rankBps : 0)), 0);
+  const span = Math.max(BAR_SPAN_BPS, worst);
 
   return (
     <div className="scroll">
-      <table>
+      <table className="cost">
         <thead>
           <tr>
             <th>Token</th>
-            <th>Liquidity</th>
-            {SIZES_USDC.map((s) => <th key={s}>${s.toLocaleString()}</th>)}
-            <th style={{ width: 88 }}>Relative</th>
+            <th className="liq-col">Liquidity</th>
+            {secondary.map((s) => <th key={s}>{money(s)}</th>)}
+            <th>{money(rankSize)}</th>
+            <th className="phone-bar" />
             <th className="route-col" style={{ textAlign: "left" }}>
-              Route at ${rankSize.toLocaleString()}
+              Route at {money(rankSize)}
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map(({ token, group, rankBps, largest }, i) => (
-            <tr key={token.symbol} style={{ animationDelay: `${i * 45}ms` }}>
-              <td data-label="Token" className="sym">{token.symbol}</td>
-              <td data-label="Liquidity" className="muted">
+            <tr
+              key={token.symbol}
+              data-hot={isFinite(rankBps) && rankBps >= HOT_BPS}
+              style={{ animationDelay: `${i * 45}ms` }}
+            >
+              <td className="sym">{token.symbol}</td>
+              <td className="liq muted">
                 {liquidity.has(token.symbol)
-                  ? `$${Math.round(liquidity.get(token.symbol)!).toLocaleString()}`
+                  ? money(Math.round(liquidity.get(token.symbol)!))
                   : "—"}
               </td>
-              {SIZES_USDC.map((size) => (
-                <Cell
-                  key={size}
-                  label={`$${size.toLocaleString()}`}
-                  trip={group.find((t) => t.sizeUsdc === size)}
-                />
+
+              {secondary.map((size, j) => (
+                <td key={size} className={`secondary sec-${j}`} data-label={money(size)}>
+                  <span className="value"><Figure trip={group.find((t) => t.sizeUsdc === size)} /></span>
+                </td>
               ))}
-              <td data-label="Relative" className="hide-sm">
-                <div
-                  className="bar"
-                  style={{ width: `${isFinite(rankBps) ? (rankBps / worst) * 100 : 0}%` }}
-                />
+
+              <td className="primary" data-label={money(rankSize)}>
+                <span className="figure"><Figure trip={largest} /></span>
+                {isFinite(rankBps) && <Bar bps={rankBps} span={span} />}
               </td>
-              <td data-label="Route" className="route">{largest?.buyRoute ?? "—"}</td>
+
+              {/* Phone only: the bar gets the full width of the screen, which is the
+                  only width at which the spread between tokens is actually visible. */}
+              <td className="phone-bar">
+                {isFinite(rankBps) && <Bar bps={rankBps} span={span} />}
+              </td>
+
+              <td className="route">{largest?.buyRoute ?? "—"}</td>
             </tr>
           ))}
         </tbody>

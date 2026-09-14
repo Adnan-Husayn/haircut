@@ -68,7 +68,7 @@ export default function CostHistory({
               <th>Low</th>
               <th>High</th>
               <th>Swing</th>
-              <th className="route-col" style={{ textAlign: "left", width: W + 20 }}>
+              <th className="spark-col" style={{ textAlign: "left", width: W + 20 }}>
                 Cost at ${sizeUsdc.toLocaleString()} over time
               </th>
             </tr>
@@ -85,7 +85,7 @@ export default function CostHistory({
                 <td data-label="Swing" className={s.max - s.min > 30 ? "accent" : "muted"}>
                   {(s.max - s.min).toFixed(1)}
                 </td>
-                <td data-label="Over time" className="route">
+                <td data-label="Over time" className="spark-cell">
                   <Spark
                     values={s.points.map((p) => p.roundTripBps)}
                     open={s.points.map((p) => p.marketOpen === true)}
