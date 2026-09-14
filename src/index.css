@@ -210,7 +210,6 @@ td.sym {
   font-family: var(--display);
   font-size: 15px;
   letter-spacing: -0.015em;
-  text-transform: uppercase;
 }
 
 .unit {
@@ -420,6 +419,12 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   font-weight: 600;
 }
 
+.panel > .muted {
+  margin: 0;
+  padding: 14px var(--gutter) 22px;
+  font-size: 13.5px;
+}
+
 .foot {
   padding: 26px var(--gutter) 40px;
   font-size: 12.5px;
@@ -510,12 +515,12 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
    */
   .cost tbody tr {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr;
     grid-template-areas:
       "sym   primary"
       "bar   bar"
       "left  right";
-    column-gap: 12px;
+    column-gap: 14px;
   }
 
   .cost td.sym {
