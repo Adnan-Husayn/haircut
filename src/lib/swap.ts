@@ -62,12 +62,23 @@ export interface SimulationResult {
 export async function simulate(
   connection: Connection,
   tx: VersionedTransaction,
+  timeoutMs = 30_000,
 ): Promise<SimulationResult> {
-  const res = await connection.simulateTransaction(tx, {
-    sigVerify: false,
-    replaceRecentBlockhash: true,
-    commitment: "confirmed",
-  });
+  // An RPC call with no timeout can leave the UI claiming it is still working
+  // forever. Fail loudly instead.
+  const res = await Promise.race([
+    connection.simulateTransaction(tx, {
+      sigVerify: false,
+      replaceRecentBlockhash: true,
+      commitment: "confirmed",
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Simulation did not answer within ${timeoutMs / 1000}s.`)),
+        timeoutMs,
+      ),
+    ),
+  ]);
 
   return {
     ok: res.value.err === null,

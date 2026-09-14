@@ -144,7 +144,9 @@ export default function SwapPanel() {
           <div>
             <dt>Simulation</dt>
             <dd>
-              {sim === null ? (
+              {sim === null && stage === "error" ? (
+                <span className="alarm">failed — {error ?? "see below"}</span>
+              ) : sim === null ? (
                 <span className="muted">running…</span>
               ) : sim.ok ? (
                 <span className="accent">
