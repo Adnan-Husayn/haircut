@@ -102,7 +102,7 @@ export default function CostHistory({
           {span.to.toISOString().slice(5, 16).replace("T", " ")} UTC.{" "}
           {sawOpen
             ? "Shaded stretches are when the underlying US market was open."
-            : "The whole window so far is with the US market closed — xStocks kept trading throughout."}
+            : "The whole window so far is with the US market closed, and xStocks kept trading throughout."}
         </p>
       )}
     </>

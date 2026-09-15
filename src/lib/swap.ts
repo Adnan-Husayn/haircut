@@ -98,7 +98,7 @@ export async function confirmSignature(
   }
 
   throw new Error(
-    "Not confirmed within 90s. It may still land — the signature above links to the explorer.",
+    "Not confirmed within 90s. It may still land; the signature above links to the explorer.",
   );
 }
 

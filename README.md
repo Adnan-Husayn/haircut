@@ -7,14 +7,14 @@
 
 <sub>`stocklana-omega.vercel.app` is the same deployment under the project's original auto-generated alias, kept for development checks.</sub>
 
-Haircut measures what trading a tokenized stock on Solana actually costs — at your size, across
-the venues your trade really routes through — before you trade.
+Haircut measures what trading a tokenized stock on Solana actually costs before you trade: at your
+size, across the venues your trade really routes through.
 
 ## The problem
 
 Tokenized US equities (xStocks) trade on Solana 24/7. The market that prices them does not.
-Liquidity is split across a shifting set of venues — Raydium CLMM, Whirlpool, Meteora DLMM,
-Riptide, Byreal, HumidiFi, BisonFi, Quantum, ZeroFi — and the number on screen is an index price,
+Liquidity is split across a shifting set of venues (Raydium CLMM, Whirlpool, Meteora DLMM,
+Riptide, Byreal, HumidiFi, BisonFi, Quantum, ZeroFi), and the number on screen is an index price,
 not what you pay.
 
 Measured: buy $N of each token and immediately sell it back. Whatever doesn't come back is what
@@ -40,7 +40,7 @@ Nothing in any interface tells you this before you trade.
 
 **1. The index price is not the executable price.** Jupiter's `usdPrice` is an index, not the mid
 of the pool your trade routes through. Comparing effective price against it produces impossible
-results — we measured METAx at *−4.4 bps*, i.e. buying below mid. Round-trip cost avoids the
+results. We measured METAx at *−4.4 bps*, i.e. buying below mid. Round-trip cost avoids the
 question: it needs no reference price at all.
 
 **2. xStocks are not `raw / 10^decimals`.** They use the Token-2022 `scaledUiAmount` extension for
@@ -58,17 +58,17 @@ mints on-chain:
 | MSTRx  | 1.0000000 |   0.0 bps | — |
 | AMZNx  | 1.0000000 |   0.0 bps | — |
 
-Ignoring the multiplier misstates a holding by up to **57 bps** — larger than the entire execution
+Ignoring the multiplier misstates a holding by up to **57 bps**, larger than the entire execution
 cost of most of these tokens at $10,000.
 
 There is a second trap inside the first. The extension carries *two* values, `multiplier` and
 `newMultiplier`, with an effective timestamp. **On every xStock that has one, the pending value has
-already taken over** — AAPLx reads 1.0026642 in `multiplier` and 1.0032690 in `newMultiplier`,
+already taken over**. AAPLx reads 1.0026642 in `multiplier` and 1.0032690 in `newMultiplier`,
 effective since 8 August. Reading the obvious field gives a number that is stale by 6 bps and
 looks perfectly plausible.
 
 In a round trip both legs are quoted in raw base units, so the multiplier cancels exactly and the
-cost measurement never touches it. It matters only where a token amount is shown to a person —
+cost measurement never touches it. It matters only where a token amount is shown to a person,
 which is why the swap panel applies it, and why that panel now agrees with Phantom to ~1 bps.
 
 Sanity check that the metric is sound: round-trip cost is monotonic in pool depth, and monotonic
@@ -103,7 +103,7 @@ Verification: the decoder is validated against SOL/USD on the same program
 oracle` refuses to report equity staleness if that control is not fresh.
 
 Pyth's 24/7 synthetic equity feeds have no on-chain account at any shard, and Hermes price
-endpoints now require auth — so there is no free live on-chain reference price for tokenized
+endpoints now require auth, so there is no free live on-chain reference price for tokenized
 equities. This is why cost is measured by round trip and not against an oracle.
 
 ## It executes
@@ -113,7 +113,7 @@ One real mainnet swap, $5 of USDC into AAPLx, signed in Phantom from the deploye
 **[`2X73jXAmYTeBZVm9SQ3iSpuRP2e96iceJ8qnMbnR4E8FuP8uyYQtSV9Pj5ZfSSpKEhfvpa9PA8o9MhJhtRqLWvFk`](https://solscan.io/tx/2X73jXAmYTeBZVm9SQ3iSpuRP2e96iceJ8qnMbnR4E8FuP8uyYQtSV9Pj5ZfSSpKEhfvpa9PA8o9MhJhtRqLWvFk)**
 
 Slot 447058311, 2026-09-14 19:38:54 UTC, finalized, no error. Fee 0.000105 SOL, 262,538 compute
-units. Routed SolFi V2 + Flux + PancakeSwap — three venues for a $5 order, which is the routing
+units. Routed SolFi V2 + Flux + PancakeSwap: three venues for a $5 order, which is the routing
 fragmentation this whole project is about.
 
 | | |
@@ -125,7 +125,7 @@ fragmentation this whole project is about.
 | realised price | $335.97 |
 
 The receipt shows the multiplier trap a third time: the RPC's own `uiAmountString` for this
-balance reads `0.01488225` — the *unscaled* figure. Applying the multiplier gives 0.014931, which
+balance reads `0.01488225`, the *unscaled* figure. Applying the multiplier gives 0.014931, which
 is what a wallet displays. Even the node's "ui amount" is not the amount to show a user.
 
 Every stage is staged and checked: quote, build, simulate against live state, and only then sign.
@@ -160,24 +160,24 @@ curl -s -X POST $SITE/api/rpc -d '{"jsonrpc":"2.0","id":1,"method":"getProgramAc
 ```
 
 One subtlety: the proxy speaks HTTP only. Left alone, `web3.js` derives a websocket URL on the
-same origin — where nothing is listening — and confirming a swap hangs forever. Subscriptions are
+same origin, where nothing is listening, and confirming a swap hangs forever. Subscriptions are
 pointed at the public websocket explicitly, which needs no credential.
 
 ## Design
 
 The page is built as a **data poster**, not a dashboard: a hard grid, zero radius, zero shadow,
 Archivo Black set enormous against hairline rules. The hero leads with the single figure that is
-the whole argument — the dearest and cheapest way to buy the same equity exposure, in the same
+the whole argument: the dearest and cheapest way to buy the same equity exposure, in the same
 minute.
 
 Cost is one quantity, so it gets one visual channel rather than a green/amber/red rainbow: figures
 stay black until a trade is genuinely expensive, then turn red. The `$10,000` column carries a data
-bar beneath each exact figure, so magnitude registers before you read a digit — relative magnitude
+bar beneath each exact figure, so magnitude registers before you read a digit: relative magnitude
 layered on absolute values, with nothing hidden.
 
 **Below 760px the table stops being a table.** Each token becomes a record: ticker, the headline
 figure at 26px, a bar running the full width of the screen, and the two smaller sizes on one line
-beneath. This is the point of the layout — squeezed into a column on a phone the bar is about 40px
+beneath. This is the point of the layout. Squeezed into a column on a phone the bar is about 40px
 wide and communicates nothing; given the full width it is 343px, which is where the spread between
 tokens actually becomes visible. Secondary tables become labelled records instead, so each column
 head travels with its value.
@@ -214,13 +214,13 @@ npm run oracle   # oracle staleness, validated against a SOL/USD control
 ```
 
 Copy `.env.example` to `.env` and set `RPC_HTTP` for the scripts. For the dev server only, set
-`VITE_RPC_HTTP` in `.env.development.local` — Vite never loads `*.development.*` in a production
+`VITE_RPC_HTTP` in `.env.development.local`. Vite never loads `*.development.*` in a production
 build, so that key cannot reach `dist/`. Deployed, the key lives only in the Vercel environment
 and is read by `api/rpc.ts`.
 
 ## Licence
 
-The **source is MIT** (see `LICENSE`) — use it, fork it, build on the methodology.
+The **source is MIT** (see `LICENSE`): use it, fork it, build on the methodology.
 
 The **measurement data is CC BY 4.0** (see `data/LICENSE`), not MIT. Those are timestamped
 observations spanning the closed→open transition of a market; they cannot be reconstructed after
@@ -229,7 +229,7 @@ asks only that you credit them.
 
 `NOTICE` lists third-party dependencies. One is worth knowing about: `rpc-websockets` is
 LGPL-3.0-only, arriving transitively through `@solana/web3.js`. This application does not use its
-websocket subscriptions — transactions are confirmed by polling over HTTP — but the package is
+websocket subscriptions, since transactions are confirmed by polling over HTTP, but the package is
 still in the dependency graph, as it is for every Solana app built on web3.js.
 
 Nothing here is investment advice. It is a measurement of what public APIs returned at a moment in
@@ -237,5 +237,5 @@ time, and it executes trades only when you click a button that says so.
 
 ## Hackathon
 
-Built for Stocklana — $100,000, funded by the Solana Foundation.
+Built for Stocklana, a $100,000 hackathon funded by the Solana Foundation.
 Submissions close **Friday 18 September, 4:00pm ET**. Judging through 2 October.

@@ -118,7 +118,7 @@ export default function App() {
           <h1>Haircut</h1>
           <p className="tagline">
             Every tokenized stock takes one. Buy ${RANK_SIZE.toLocaleString()}, sell back exactly
-            what you got, and count what never came home. That gap is the haircut — and nothing
+            what you got, and count what never came home. That gap is the haircut, and nothing
             tells you how big it is before you trade.
           </p>
         </div>
@@ -143,7 +143,7 @@ export default function App() {
       </header>
       <p className="sub">
         Measured, not quoted: buy $N of the token, then immediately sell the exact amount
-        received. Whatever does not come back is the haircut — what entering and exiting actually
+        received. Whatever does not come back is the haircut: what entering and exiting actually
         cost you.
       </p>
 
@@ -182,7 +182,7 @@ export default function App() {
         <h2>Cost is not a constant</h2>
         <p className="note">
           Recorded continuously since the project started. The spread between tokens persists, and
-          each token's own cost moves — which is why a single quote is not an answer.
+          each token's own cost moves, which is why a single quote is not an answer.
         </p>
         <CostHistory points={history} sizeUsdc={Math.max(...SIZES_USDC)} />
       </div>
@@ -199,9 +199,9 @@ export default function App() {
       </div>
 
       <p className="foot">
-        Cost measured by round trip so no reference price is needed — and because xStocks carry
-        Token-2022 scaled-UI multipliers for dividends and splits, which cancel when both legs are
-        quoted in raw base units.
+        Cost is measured by round trip, so no reference price is needed. That matters because
+        xStocks carry Token-2022 scaled-UI multipliers for dividends and splits, and those cancel
+        when both legs are quoted in raw base units.
       </p>
     </div>
   );

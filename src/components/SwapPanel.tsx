@@ -308,14 +308,14 @@ export default function SwapPanel() {
             <dt>Price impact</dt>
             <dd>
               {(prepared.priceImpactPct * 100).toFixed(3)}%
-              <span className="sub-note">you pay this — the cost of moving this pool</span>
+              <span className="sub-note">you pay this: the cost of moving this pool</span>
             </dd>
           </div>
           <div>
             <dt>Slippage limit</dt>
             <dd>
               {(prepared.slippageBps / 100).toFixed(2)}%
-              <span className="sub-note">a cap, not a cost — the trade fails past this</span>
+              <span className="sub-note">a cap, not a cost. The trade fails past this</span>
             </dd>
           </div>
           <div>
@@ -328,7 +328,7 @@ export default function SwapPanel() {
                   {(feeLamports / 1e9).toFixed(6)} SOL
                   <span className="sub-note">
                     {solUsd
-                      ? `$${((feeLamports / 1e9) * solUsd).toFixed(4)} — ${(((feeLamports / 1e9) * solUsd / size) * 10_000).toFixed(1)} bps of this trade`
+                      ? `$${((feeLamports / 1e9) * solUsd).toFixed(4)} · ${(((feeLamports / 1e9) * solUsd / size) * 10_000).toFixed(1)} bps of this trade`
                       : "flat, so it dominates small trades and vanishes on large ones"}
                   </span>
                 </>
@@ -339,7 +339,7 @@ export default function SwapPanel() {
             <dt>Simulation</dt>
             <dd>
               {sim === null && stage === "error" ? (
-                <span className="alarm">failed — {error ?? "see below"}</span>
+                <span className="alarm">failed: {error ?? "see below"}</span>
               ) : sim === null ? (
                 <span className="muted">running…</span>
               ) : sim.ok ? (
@@ -347,7 +347,7 @@ export default function SwapPanel() {
                   succeeded{sim.unitsConsumed ? ` · ${sim.unitsConsumed.toLocaleString()} CU` : ""}
                 </span>
               ) : (
-                <span className="alarm">failed — {explainFailure(sim)}</span>
+                <span className="alarm">failed: {explainFailure(sim)}</span>
               )}
             </dd>
           </div>
@@ -389,7 +389,7 @@ export default function SwapPanel() {
       {connected && shortOfBalance && spendable !== null && (
         <p className="note waiting">
           This wallet holds <strong>${spendable.toFixed(2)} USDC</strong> and you have asked to
-          spend <strong>${size.toFixed(2)}</strong>. A buy spends USDC — SOL only covers the fee —
+          spend <strong>${size.toFixed(2)}</strong>. A buy spends USDC, and SOL only covers the fee,
           so either lower the amount, press Max, or swap some SOL to USDC first (Phantom's own swap
           does it in one step).
         </p>

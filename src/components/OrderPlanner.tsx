@@ -60,7 +60,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
     <div className="panel">
       <h2>What will my trade actually cost?</h2>
       <p className="note">
-        Quoted live at your exact size, then compared against the cheapest token in the table —
+        Quoted live at your exact size, then compared against the cheapest token in the table,
         because the gap between them is worth more than most people's fee savings.
       </p>
 
@@ -92,7 +92,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
             <span className={`big ${chosen.roundTripBps > 40 ? "c4" : "c3"}`}>
               ${dollars(chosen).toFixed(2)}
             </span>{" "}
-            on ${chosen.sizeUsdc.toLocaleString()} — {chosen.roundTripBps.toFixed(1)} bps in and out,
+            on ${chosen.sizeUsdc.toLocaleString()}: {chosen.roundTripBps.toFixed(1)} bps in and out,
             routing through {chosen.buyRoute}.
           </p>
           {alternative && saving > 0.01 && (
@@ -109,7 +109,7 @@ export default function OrderPlanner({ trips }: { trips: RoundTrip[] }) {
             </p>
           )}
           <p className="muted" style={{ fontSize: ".8rem", marginTop: ".9rem" }}>
-            Different companies, so not the same exposure — but if the goal is equity exposure
+            Different companies, so not the same exposure. But if the goal is equity exposure
             rather than one specific name, the cost difference is real money.
           </p>
         </div>
