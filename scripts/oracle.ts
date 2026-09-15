@@ -12,11 +12,11 @@ import { XSTOCKS } from "../src/lib/tokens";
 const FRESH_HOURS = 1;
 
 async function main() {
-  console.log(`rpc: ${rpcDisplay()}${isPublicFallback() ? "  (public fallback — expect rate limits)" : ""}\n`);
+  console.log(`rpc: ${rpcDisplay()}${isPublicFallback() ? "  (public fallback, expect rate limits)" : ""}\n`);
 
   const control = await readFeed(SOL_USD_FEED_ID);
   if (!control) {
-    console.error("SOL/USD control account not found — cannot trust any reading below.");
+    console.error("SOL/USD control account not found; cannot trust any reading below.");
     process.exit(1);
   }
   console.log(
@@ -30,7 +30,7 @@ async function main() {
     );
     process.exit(1);
   }
-  console.log("control is fresh — decoder verified\n");
+  console.log("control is fresh, decoder verified\n");
 
   for (const token of XSTOCKS) {
     if (!token.pythFeedId) {

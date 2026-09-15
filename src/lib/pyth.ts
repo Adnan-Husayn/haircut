@@ -5,8 +5,8 @@
  * needs no reference price. Pyth is here because what it reveals is itself a
  * finding: the on-chain equity feeds are not being maintained.
  *
- * Measured while building: the AAPL feed last published 2026-08-14 — roughly 710
- * hours stale — while SOL/USD on the same program was current to the second. The
+ * Measured while building: the AAPL feed last published 2026-08-14, roughly 710
+ * hours stale, while SOL/USD on the same program was current to the second. The
  * SOL feed is the control that proves the decoder is right.
  *
  * Pyth's 24/7 synthetic equity feeds have no on-chain account at any shard, and
@@ -21,7 +21,7 @@ export const PYTH_PUSH_ORACLE = new PublicKey("pythWSnswVUd12oZpeFP8e9CVaEqJg25g
 /** Program that owns the price update accounts. */
 export const PYTH_RECEIVER = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ";
 
-/** SOL/USD — actively updated, used to validate the decoder. */
+/** SOL/USD: actively updated, used to validate the decoder. */
 export const SOL_USD_FEED_ID = "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
 export interface PriceUpdate {

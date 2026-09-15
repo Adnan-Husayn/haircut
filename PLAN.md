@@ -1,4 +1,4 @@
-# Stocklana — build plan
+# Stocklana build plan
 **Deadline: Friday 18 September, 4:00pm ET** (= Sat 19 Sep, ~1:30am IST). Judging to Oct 2.
 $100,000 pool, funded by the Solana Foundation. 261 registered, 21 submissions at time of writing.
 
@@ -27,7 +27,7 @@ Two facts a user cannot currently see:
    against. The discount/premium is widest exactly when it is least visible.
 
 **Product: the execution-cost layer for tokenized stocks.** Show what a trade actually
-costs before it happens — across every venue, at your size, including when the underlying
+costs before it happens: across every venue, at your size, including when the underlying
 market is shut. Then route it.
 
 Fits two of the five tracks at once: *Trading* (24/7 venues, stock-to-stablecoin swaps)
@@ -35,15 +35,15 @@ and *Infrastructure* (price feeds, analytics).
 
 ---
 
-## Verified infrastructure — no research needed on day one
+## Verified infrastructure (no research needed on day one)
 
 | Thing | Status |
 |---|---|
 | Jupiter quote API (`lite-api.jup.ag/swap/v1/quote`) | works, free, **no API key** |
 | Jupiter token search (`/tokens/v2/search`) | works, gives mint, mid price, liquidity, holders |
-| Pyth `/v2/price_feeds` metadata | works, free — `market_hours.is_open`, `next_open`, full holiday schedule |
-| Pyth Hermes **price** endpoints | **401 — now needs auth.** Read price accounts on-chain via RPC instead |
-| Pyth 24/7 synthetic equity feed | exists (`aaba35e6…`) alongside official (`49f6b65c…`) — reference price while NASDAQ is closed |
+| Pyth `/v2/price_feeds` metadata | works, free: `market_hours.is_open`, `next_open`, full holiday schedule |
+| Pyth Hermes **price** endpoints | **401, now needs auth.** Read price accounts on-chain via RPC instead |
+| Pyth 24/7 synthetic equity feed | exists (`aaba35e6…`) alongside official (`49f6b65c…`), reference price while NASDAQ is closed |
 | xStocks | live SPL **Token-2022**, 8 decimals, real liquidity (SPYx $4.6M, NVDAx $1.9M) |
 
 The Hermes 401 is good news: reading Pyth price accounts over RPC is what your arbitrage
@@ -67,13 +67,13 @@ USDC   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 ## Do this in the next hour
 
 1. **Register** at hackathons.solana.com/hackathons/stocklana (registering is not submitting).
-2. **Start the logger looping** — `python3 xstock_logger.py --loop 300`.
+2. **Start the logger looping**: `python3 xstock_logger.py --loop 300`.
    Monday 9:30am ET NASDAQ reopens. The closed→open transition is the single most valuable
    chart in your demo and **you cannot regenerate it afterwards.** Start it today.
 
 ---
 
-## MVP — what ships by Friday
+## MVP: what ships by Friday
 
 1. **Ingestion (Rust).** Poll Jupiter quotes for 8 xStocks at 3 sizes. Read Pyth price
    accounts on-chain for the reference price + market-hours state. Persist a time series.
@@ -97,8 +97,8 @@ Historical charting beyond one sparkline. A landing page with animations.
 | **Mon 14** | Pyth on-chain reads + market-hours logic. Capture the 9:30am ET open. Persist series. |
 | **Tue 15** | React dashboard: the table + the cost curve. Ugly but real data end to end. |
 | **Wed 16** | Wallet connect + Jupiter swap execution. Error/confirmation handling. |
-| **Thu 17** | Deploy public URL. README. Record the 2–3 min demo. Submit. |
-| **Fri 18** | Buffer. Polish. Edits are allowed right up to close — submit Thursday regardless. |
+| **Thu 17** | Deploy public URL. README. Record the 2 to 3 minute demo. Submit. |
+| **Fri 18** | Buffer. Polish. Edits are allowed right up to close, so submit Thursday regardless. |
 
 Judging is one question: *could this be a real app people actually use?* They want a real
 user and problem, a working end-to-end demo, a reason it belongs on Solana, and execution
@@ -108,7 +108,7 @@ quality. You have the problem, measured. Spend the days on the working demo.
 
 ## Money
 
-Jupiter quotes are free. You only need USDC for **one** demo swap — roughly $5–20, plus
+Jupiter quotes are free. You only need USDC for **one** demo swap, roughly $5 to $20, plus
 a few cents of SOL for fees. That is the entire capital requirement. (Contrast the OOBE
 bounty, which wanted 5+ real mainnet trades.)
 

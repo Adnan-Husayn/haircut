@@ -28,7 +28,7 @@ export interface RoundTrip {
   sizeUsdc: number;
   /** Raw base units of the xStock received on the buy leg. */
   rawTokens: bigint;
-  /** Naive token count. Display only — ignores the scaledUiAmount multiplier. */
+  /** Naive token count. Display only; ignores the scaledUiAmount multiplier. */
   tokensOut: number;
   /** USDC returned by selling the exact buy output straight back. */
   usdBack: number;

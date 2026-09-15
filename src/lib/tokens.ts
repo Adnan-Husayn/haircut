@@ -20,7 +20,7 @@ export interface XStock {
   symbol: string;
   /** Token-2022 mint address. */
   mint: string;
-  /** Raw decimals. Not sufficient on its own for display — see note above. */
+  /** Raw decimals. Not sufficient on its own for display; see note above. */
   decimals: number;
   /** Underlying NASDAQ/NYSE symbol, used for Pyth market-hours lookup. */
   equity: string;

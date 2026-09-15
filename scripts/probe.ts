@@ -41,13 +41,13 @@ async function main() {
   const expected = XSTOCKS.length * SIZES_USDC.length;
   if (trips.length === 0) {
     console.error(
-      `\ncollected 0 of ${expected} quotes — every request failed. ` +
+      `\ncollected 0 of ${expected} quotes; every request failed. ` +
         `Nothing was measured, so nothing is verified.`,
     );
     process.exit(1);
   }
 
-  console.log(`\nround-trip execution cost — ${new Date().toISOString()}`);
+  console.log(`\nround-trip execution cost at ${new Date().toISOString()}`);
   console.log(`collected ${trips.length}/${expected} quotes\n`);
   console.log(
     "token".padEnd(8) +

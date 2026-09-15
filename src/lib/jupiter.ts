@@ -30,7 +30,7 @@ export interface TokenInfo {
   id: string;
   symbol: string;
   decimals: number;
-  /** Jupiter's INDEX price. Not the executable mid — do not compute cost against it. */
+  /** Jupiter's INDEX price. Not the executable mid, so do not compute cost against it. */
   usdPrice?: number;
   liquidity?: number;
   holderCount?: number;
