@@ -84,13 +84,15 @@ are in completely different condition.
 keeps moving after the US close. Sampled every two minutes across the bell on 16 September,
 20:00 UTC:
 
-| window | samples | distinct prices |
-|--------|--------:|----------------:|
-| 19:46 to 20:00 UTC (open)   |  7 | 6 to 7 per feed |
-| 20:00 to 20:44 UTC (closed) | 23 | 20 to 23 per feed |
+| window | samples | distinct prices per feed |
+|--------|--------:|-------------------------:|
+| 19:46 to 20:00 UTC (open)   |   7 | 6 to 7 |
+| 20:00 to 21:34 UTC (closed) |  48 | 44 to 48 |
 
-Price discovery continues after hours at a comparable rate. MSTR moved more after the close
-than before it.
+Across all 495 readings in that window, spanning an hour and a half past the bell, no company
+feed was ever more than **19 seconds** old (min 3s, mean 10s, zero readings above two minutes).
+Price discovery continues after hours at the same rate. MSTR moved more after the close than
+before it.
 
 `Crypto.{SYMBOL}X/USD` prices the token you would actually buy, and it stopped:
 
