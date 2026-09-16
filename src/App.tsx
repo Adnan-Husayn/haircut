@@ -60,7 +60,11 @@ export default function App() {
 
     marketOpen("AAPL").then((v) => !cancelled && setIsOpen(v));
 
-    const feedIds = XSTOCKS.map((t) => t.pythFeedId).filter((id): id is string => !!id);
+    // Both families in one call: the company feed and the token's own feed.
+    // The comparison between them is the point of the panel.
+    const feedIds = XSTOCKS.flatMap((t) => [t.pythFeedId, t.tokenFeedId]).filter(
+      (id): id is string => !!id,
+    );
     readFeeds(feedIds)
       .then((m) => !cancelled && setFeeds(m))
       .catch(() => {/* panel stays empty */});
@@ -190,10 +194,21 @@ export default function App() {
       <SwapPanel />
 
       <div className="panel">
-        <h2>The on-chain oracle for these stocks has stopped updating</h2>
+        <h2>The oracle prices the company, not the token</h2>
         <p className="note">
-          Pyth equity feeds read directly from their price accounts on Solana. The decoder is
-          validated against SOL/USD on the same program, which returns current to the second.
+          Pyth publishes two feeds per name, read here directly from their price accounts on
+          Solana. The company feed is live and keeps moving after the US close. The feed for the
+          token itself stopped on 12 September, and the redemption-rate feeds that would price the
+          gap between a token and a share stopped about eight weeks ago. Nobody is paying to keep
+          the tokenized-asset feeds current, which is the reason this page measures the round trip
+          instead of trusting a reference price.
+        </p>
+        <p className="note">
+          A price account is a PDA of [shard, feed id], and the same feed exists at several shards.
+          Shard 0 of the company feeds is abandoned and still answers, with a month-old price and
+          no error of any kind. This page had that wrong until 16 September: it read shard 0 and
+          reported a dead deployment as a dead oracle. Every read now sweeps the shards and takes
+          the freshest. SOL/USD is the control, and it has the same trap at shard 2.
         </p>
         <StalenessPanel feeds={feeds} marketPrice={marketPrice} />
       </div>

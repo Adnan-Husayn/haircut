@@ -1,9 +1,12 @@
 /**
  * Oracle staleness check. Run: npm run oracle
  *
- * Verifies the Pyth decoder and reports how stale the on-chain equity feeds are.
+ * Verifies the Pyth decoder and reports the freshest reading for each feed,
+ * naming the shard it came from. Shards disagree: the equity feeds are abandoned
+ * at shard 0 and live at shard 1, so a per-shard breakdown is the point here.
+ *
  * SOL/USD is the control: if it does not come back fresh, the decoder is wrong
- * and any staleness claim about the equity feeds is meaningless.
+ * and nothing below this line means anything.
  */
 import { readFeed, priceFeedAccount, SOL_USD_FEED_ID } from "../src/lib/pyth";
 import { isPublicFallback, rpcDisplay } from "../src/lib/chain";
@@ -21,7 +24,8 @@ async function main() {
   }
   console.log(
     `control  SOL/USD   $${control.price.toFixed(2).padStart(10)}   ` +
-      `${control.ageHours.toFixed(1)}h old   ${priceFeedAccount(SOL_USD_FEED_ID).toBase58()}`,
+      `${control.ageHours.toFixed(1)}h old   shard ${control.shard}   ` +
+      `${priceFeedAccount(SOL_USD_FEED_ID, control.shard).toBase58()}`,
   );
   if (control.ageHours > FRESH_HOURS) {
     console.error(
@@ -40,13 +44,13 @@ async function main() {
     try {
       const feed = await readFeed(token.pythFeedId);
       if (!feed) {
-        console.log(`${token.equity.padEnd(8)} no on-chain account at shard 0`);
+        console.log(`${token.equity.padEnd(8)} no on-chain account at any shard`);
         continue;
       }
       const flag = feed.ageHours > 24 ? "  <-- STALE" : "";
       console.log(
         `${token.equity.padEnd(8)} $${feed.price.toFixed(2).padStart(10)}   ` +
-          `${feed.ageHours.toFixed(1)}h old   ` +
+          `${feed.ageHours.toFixed(1)}h old   shard ${feed.shard}   ` +
           `last ${feed.publishTime.toISOString().slice(0, 16).replace("T", " ")}${flag}`,
       );
     } catch (err) {

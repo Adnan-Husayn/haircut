@@ -74,37 +74,60 @@ which is why the swap panel applies it, and why that panel now agrees with Phant
 Sanity check that the metric is sound: round-trip cost is monotonic in pool depth, and monotonic
 in trade size, for every token. The earlier index-based numbers were neither.
 
-## Second finding: the on-chain equity oracles have stopped updating
+## Second finding: the oracle prices the company, not the token
 
 Pyth price feed accounts are PDAs of `pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT`,
-seeds `[u16le shard, 32-byte feed_id]`. Reading all eight underlying equity feeds on-chain,
-live from the deployed page:
+seeds `[u16le shard, 32-byte feed_id]`. There are two feed families for each name, and they
+are in completely different condition.
 
-| feed | oracle price | market price | divergence | feed age |
-|------|-------------:|-------------:|-----------:|---------:|
-| MSTR  |  $93.04 | $131.91 | **+41.8%** | 31d |
-| META  | $589.79 | $662.69 |   +12.4% | 31d |
-| AAPL  | $305.92 | $334.07 |    +9.2% | 31d |
-| AMZN  | $261.22 | $255.21 |    −2.3% | 25d |
-| TSLA  | $365.27 | $359.05 |    −1.7% | 61h |
-| NVDA  | $211.02 | $212.98 |    +0.9% | 19d |
-| GOOGL | $346.01 | $343.83 |    −0.6% | 31d |
-| SPY   | $765.48 | $763.18 |    −0.3% | 19d |
+`Equity.US.{SYMBOL}/USD` prices the company. It is live, publishing every few seconds, and it
+keeps moving after the US close. Sampled every two minutes across the bell on 16 September,
+20:00 UTC:
 
-**Seven of eight are weeks stale.** TSLA is the freshest at 61 hours, last publishing at Friday's
-close. The rest stopped between 14 and 26 August.
+| window | samples | distinct prices |
+|--------|--------:|----------------:|
+| 19:46 to 20:00 UTC (open)   |  7 | 6 to 7 per feed |
+| 20:00 to 20:44 UTC (closed) | 23 | 20 to 23 per feed |
 
-Divergence tracks staleness exactly as you would expect: the freshest feed is off by 1.7%, and the
-one that last published a month ago is off by nearly 42%. Anything pricing collateral or
-liquidations off the MSTR feed is working from $93 for an asset trading at $132.
+Price discovery continues after hours at a comparable rate. MSTR moved more after the close
+than before it.
 
-Verification: the decoder is validated against SOL/USD on the same program
-(`7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE`), which returns current-to-the-second. `npm run
-oracle` refuses to report equity staleness if that control is not fresh.
+`Crypto.{SYMBOL}X/USD` prices the token you would actually buy, and it stopped:
 
-Pyth's 24/7 synthetic equity feeds have no on-chain account at any shard, and Hermes price
-endpoints now require auth, so there is no free live on-chain reference price for tokenized
-equities. This is why cost is measured by round trip and not against an oracle.
+| feed family | shards with an account | last published | age |
+|-------------|-----------------------|----------------|----:|
+| `Equity.US.{SYMBOL}/USD`   | 0 (dead), **1 (live)** | continuously | seconds |
+| `Crypto.{SYMBOL}X/USD`     | 0 only | 2026-09-12 12:18 UTC | ~4d |
+| `Crypto.{SYMBOL}X/{SYMBOL}.RR` | 0 only | 2026-07-21 to 2026-07-26 | ~8w |
+
+All eight token feeds froze at the same timestamp, so this is one publisher stopping rather
+than drift. The redemption-rate feeds, which exist precisely to price the gap between a token
+and the share behind it, stopped about eight weeks ago.
+
+Pyth is a pull oracle: an on-chain price account only moves while somebody pays to update it.
+Somebody is paying for the company feeds. Nobody is paying for the feeds specific to the
+tokenized assets. That is the reason this project measures the round trip rather than pricing
+against a reference: for the thing being traded, there is no maintained on-chain reference.
+
+### A correction, and the trap that caused it
+
+Until 16 September this section claimed the equity oracles themselves had stopped. That was
+wrong. The code read **shard 0** and nothing else.
+
+Shard 0 of the company feeds is an abandoned deployment. It still answers, with a month-old
+price, and returns no error of any kind: AAPL there reads $305.92 from 14 August, while the
+same feed at shard 1 tracks the market to within a few basis points. A dead deployment was
+mistaken for a dead oracle.
+
+`src/lib/pyth.ts` now sweeps shards 0 to 2 in a single `getMultipleAccounts` call and takes the
+freshest reading, and `PriceUpdate` carries the shard it came from. Shard 1 is deliberately not
+hardcoded: hardcoding a shard is what caused this, and shard 1 can be abandoned later exactly
+as shard 0 was.
+
+Verification: the decoder is validated against SOL/USD on the same program, which returns
+current-to-the-second. SOL/USD has the same trap at shard 2, last published 2024-04-11, in a
+feed nobody would describe as stale. `npm run oracle` reports the shard for every reading and
+refuses to report anything if the control is not fresh.
 
 ## It executes
 
@@ -133,7 +156,7 @@ Execute stays disabled until a simulation has actually succeeded.
 
 ## The RPC proxy
 
-The staleness panel needs a keyed RPC endpoint; the public mainnet-beta endpoint rate-limits the
+The oracle panel needs a keyed RPC endpoint; the public mainnet-beta endpoint rate-limits the
 read and the panel renders empty. But **anything named `VITE_*` is inlined into the production
 bundle at build time**, so shipping the key that way publishes it.
 
@@ -210,7 +233,7 @@ cost is not a constant, and a single quote is not an answer.
 npm install
 npm run dev      # dashboard
 npm run probe    # cost table in the terminal, exits non-zero if unsound
-npm run oracle   # oracle staleness, validated against a SOL/USD control
+npm run oracle   # per-shard feed readings, validated against a SOL/USD control
 ```
 
 Copy `.env.example` to `.env` and set `RPC_HTTP` for the scripts. For the dev server only, set
