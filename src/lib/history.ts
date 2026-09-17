@@ -100,11 +100,38 @@ export function parseHistory(csv: string): HistoryPoint[] {
   return out;
 }
 
+/**
+ * Timestamp of the newest tick that recorded every token at every size.
+ *
+ * About one tick in five is missing a token because a Jupiter quote failed.
+ * Both the table and the series end at this tick so the page never shows two
+ * different "current" numbers for the same token, and so the hero's
+ * same-size-same-minute comparison is actually from one minute. Null when no
+ * tick is complete, in which case callers fall back to the newest tick at all.
+ */
+export function newestCompleteTick(points: HistoryPoint[]): number | null {
+  if (points.length === 0) return null;
+  const expected = new Set(points.map((p) => `${p.symbol}@${p.sizeUsdc}`)).size;
+  const counts = new Map<number, number>();
+  for (const p of points) {
+    const t = p.ts.getTime();
+    counts.set(t, (counts.get(t) ?? 0) + 1);
+  }
+  const complete = [...counts.entries()]
+    .filter(([, n]) => n >= expected)
+    .map(([t]) => t)
+    .sort((a, b) => b - a);
+  return complete[0] ?? null;
+}
+
 /** One series per token at a given trade size, oldest first. */
 export function toSeries(points: HistoryPoint[], sizeUsdc: number): Series[] {
+  // Stop at the same tick the table stops at, so "Now" agrees with it.
+  const cutoff = newestCompleteTick(points);
   const bySymbol = new Map<string, HistoryPoint[]>();
   for (const p of points) {
     if (p.sizeUsdc !== sizeUsdc) continue;
+    if (cutoff !== null && p.ts.getTime() > cutoff) continue;
     bySymbol.set(p.symbol, [...(bySymbol.get(p.symbol) ?? []), p]);
   }
 
@@ -149,7 +176,17 @@ export function latestSnapshot(points: HistoryPoint[]): {
   liquidity: Map<string, number>;
 } {
   if (points.length === 0) return { ts: null, trips: [], liquidity: new Map() };
-  const newest = Math.max(...points.map((p) => p.ts.getTime()));
+
+  // Take the newest *complete* tick, not simply the newest.
+  //
+  // A Jupiter quote fails often enough that about one tick in five is missing at
+  // least one token, and seeding from a partial tick leaves a row of dashes in
+  // the headline table. Ticks are 15 minutes apart, so stepping back costs a
+  // little freshness and buys a table where every row is present and every row
+  // is from the same instant. Falling back to the newest tick regardless means a
+  // first run, with only a partial tick recorded, still paints something.
+  const newest =
+    newestCompleteTick(points) ?? Math.max(...points.map((p) => p.ts.getTime()));
   const latest = points.filter((p) => p.ts.getTime() === newest);
 
   const liquidity = new Map<string, number>();

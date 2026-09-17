@@ -4,9 +4,11 @@ import CostTable from "./components/CostTable";
 import OrderPlanner from "./components/OrderPlanner";
 import StalenessPanel from "./components/StalenessPanel";
 import SwapPanel from "./components/SwapPanel";
-import { impliedMarketPrice, measureRoundTrip, type RoundTrip } from "./lib/cost";
+import { impliedMarketPrice, measureRoundTrip, tokenPrice, type RoundTrip } from "./lib/cost";
 import { latestSnapshot, loadHistory, type HistoryPoint } from "./lib/history";
 import { marketOpen, readFeeds, type PriceUpdate } from "./lib/pyth";
+import { readMultipliers } from "./lib/scaled";
+import { makeConnection } from "./lib/chain";
 import { SIZES_USDC, XSTOCKS } from "./lib/tokens";
 
 const PAUSE_MS = 250;
@@ -44,6 +46,8 @@ export default function App() {
   const [feeds, setFeeds] = useState<Map<string, PriceUpdate>>(new Map());
   const [isOpen, setIsOpen] = useState<boolean | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [multipliers, setMultipliers] = useState<Map<string, number>>(new Map());
+  const [livePrice, setLivePrice] = useState<Map<string, number>>(new Map());
 
   /** When the displayed table was recorded; null once it has been refreshed live. */
   const [recordedAt, setRecordedAt] = useState<Date | null>(null);
@@ -68,6 +72,28 @@ export default function App() {
     readFeeds(feedIds)
       .then((m) => !cancelled && setFeeds(m))
       .catch(() => {/* panel stays empty */});
+
+    // Needed before any per-token price can be compared with an oracle price.
+    readMultipliers(makeConnection(), XSTOCKS.map((t) => t.mint))
+      .then((m) => !cancelled && setMultipliers(m))
+      .catch(() => {/* the premium column stays blank rather than wrong */});
+
+    // The premium column compares a price against a live feed, so its price has
+    // to be live too. The cost figures beside it are recorded, which is fine:
+    // they are a different quantity. Comparing an hour-old trade with a feed
+    // that updates every ten seconds measures the stock moving, not a premium.
+    // One buy leg each, spaced out, and any failure leaves a dash.
+    (async () => {
+      const prices = new Map<string, number>();
+      for (const token of XSTOCKS) {
+        if (cancelled) return;
+        try {
+          prices.set(token.symbol, await tokenPrice(token));
+          setLivePrice(new Map(prices));
+        } catch {/* that row shows no premium */}
+        await sleep(PAUSE_MS);
+      }
+    })();
 
     loadHistory().then((h) => {
       if (cancelled) return;
@@ -109,6 +135,14 @@ export default function App() {
   for (const token of XSTOCKS) {
     const implied = impliedMarketPrice(trips, token.symbol);
     if (implied) marketPrice.set(token.symbol, implied);
+  }
+
+  // The live company feed, by symbol. This is the maintained one; the token's own
+  // feed stopped in September and is shown separately rather than compared against.
+  const oraclePrice = new Map<string, number>();
+  for (const token of XSTOCKS) {
+    const feed = token.pythFeedId ? feeds.get(token.pythFeedId) : undefined;
+    if (feed) oraclePrice.set(token.symbol, feed.price);
   }
 
   // The hero is the whole argument in one figure: the dearest and cheapest way
@@ -162,9 +196,18 @@ export default function App() {
         </h2>
         <p className="note">
           xStocks trade 24/7; the market pricing them does not. Cost is measured across whichever
-          venues the trade actually routes through.
+          venues the trade actually routes through. Against the oracle is a live quote read against
+          Pyth's live company feed: what one share costs bought as a token, against what the oracle
+          says that share is worth. That gap is the tokenization premium, and it sits on top of the
+          execution cost, not inside it.
         </p>
-        <CostTable trips={trips} liquidity={liquidity} />
+        <CostTable
+          trips={trips}
+          liquidity={liquidity}
+          oracle={oraclePrice}
+          multipliers={multipliers}
+          price={livePrice}
+        />
 
         <div className="provenance">
           <span className={recordedAt ? "muted" : "good"}>

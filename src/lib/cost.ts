@@ -107,6 +107,24 @@ export function assertSane(trips: RoundTrip[]): string[] {
 }
 
 /**
+ * Price of one token from a real quote, in the same raw-denominated terms as
+ * `impliedMarketPrice`. Divide by the scaled-UI multiplier to get a price per
+ * share.
+ *
+ * One buy leg rather than a round trip: a price needs no sell side, and the page
+ * loads eight of these, so halving the request count matters against the free
+ * Jupiter tier. Deliberately a quote and not Jupiter's `usdPrice` mid, which
+ * disagrees with routed execution by as much as 56 bps.
+ */
+export async function tokenPrice(token: XStock, sizeUsdc = 100): Promise<number> {
+  const inRaw = BigInt(sizeUsdc) * 10n ** BigInt(USDC_DECIMALS);
+  const buy = await quote(USDC_MINT, token.mint, inRaw);
+  const tokensOut = Number(BigInt(buy.outAmount)) / 10 ** token.decimals;
+  if (!(tokensOut > 0)) throw new Error(`${token.symbol}: quote returned no tokens`);
+  return sizeUsdc / tokensOut;
+}
+
+/**
  * Market price implied by a round trip's buy leg.
  *
  * Used as a fallback when Jupiter's index price is unavailable (it rate-limits

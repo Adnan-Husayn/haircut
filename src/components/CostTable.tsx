@@ -15,6 +15,44 @@ const HOT_BPS = 50;
 
 const money = (n: number) => `$${n.toLocaleString()}`;
 
+/**
+ * What a share costs through the token, against what the oracle says the share
+ * is worth. The gap is the premium for holding it in tokenized form.
+ *
+ * The multiplier is load-bearing here, in the opposite direction to everywhere
+ * else on this page. Round-trip cost quotes both legs raw so the multiplier
+ * cancels; a price is a single leg, so it does not cancel and must be applied.
+ * `impliedMarketPrice` divides by `raw / 10^decimals`, so it is a price per raw
+ * unit, and one raw unit is `multiplier` shares. Skipping this step makes every
+ * row report its own multiplier as if it were a market premium, with TSLAx at
+ * exactly 1.0 sitting at zero and looking like confirmation.
+ *
+ * Shown as a percentage, not bps, so it cannot be mistaken for a cost figure.
+ */
+function Premium({
+  implied,
+  oracle,
+  multiplier,
+}: {
+  implied?: number;
+  oracle?: number;
+  multiplier?: number;
+}) {
+  if (implied === undefined || oracle === undefined || oracle <= 0 || !multiplier) {
+    return <span className="c0">—</span>;
+  }
+  const perShare = implied / multiplier;
+  const pct = ((perShare - oracle) / oracle) * 100;
+  const shown = Math.abs(pct) < 0.005 ? 0 : pct;
+  return (
+    <span className="value">
+      {shown > 0 ? "+" : shown < 0 ? "−" : ""}
+      {Math.abs(shown).toFixed(2)}
+      <span className="unit">%</span>
+    </span>
+  );
+}
+
 function Figure({ trip }: { trip?: RoundTrip }) {
   if (!trip) return <span className="c0">—</span>;
   return (
@@ -36,9 +74,18 @@ function Bar({ bps, span }: { bps: number; span: number }) {
 export default function CostTable({
   trips,
   liquidity,
+  oracle,
+  multipliers,
+  price,
 }: {
   trips: RoundTrip[];
   liquidity: Map<string, number>;
+  /** Live company price per symbol, from the Pyth feed that is actually maintained. */
+  oracle: Map<string, number>;
+  /** Scaled-UI multiplier by mint. Without it a price per token is not a price per share. */
+  multipliers: Map<string, number>;
+  /** Live token price by symbol, read at the same time as the oracle feed. */
+  price: Map<string, number>;
 }) {
   const sizes = [...SIZES_USDC].sort((a, b) => a - b);
   const rankSize = sizes[sizes.length - 1];
@@ -65,6 +112,7 @@ export default function CostTable({
             <th className="liq-col">Liquidity</th>
             {secondary.map((s) => <th key={s}>{money(s)}</th>)}
             <th>{money(rankSize)}</th>
+            <th className="prem-col">vs oracle</th>
             <th className="phone-bar" />
             <th className="route-col" style={{ textAlign: "left" }}>
               Route at {money(rankSize)}
@@ -94,6 +142,14 @@ export default function CostTable({
               <td className="primary" data-label={money(rankSize)}>
                 <span className="figure"><Figure trip={largest} /></span>
                 {isFinite(rankBps) && <Bar bps={rankBps} span={span} />}
+              </td>
+
+              <td className="premium" data-label="vs oracle">
+                <Premium
+                  implied={price.get(token.symbol)}
+                  oracle={oracle.get(token.symbol)}
+                  multiplier={multipliers.get(token.mint)}
+                />
               </td>
 
               {/* Phone only: the bar gets the full width of the screen, which is the

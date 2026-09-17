@@ -31,6 +31,45 @@ const num = (v: string | number | undefined): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
+/** Pick the multiplier in force from a parsed mint's extension list. */
+function fromExtensions(extensions: ParsedExtension[]): number {
+  const scaled = extensions.find((e) => e.extension === "scaledUiAmountConfig");
+  if (!scaled?.state) return 1;
+
+  const current = num(scaled.state.multiplier) ?? 1;
+  const next = num(scaled.state.newMultiplier);
+  const effectiveAt = num(scaled.state.newMultiplierEffectiveTimestamp);
+
+  if (next !== undefined && effectiveAt !== undefined && Date.now() / 1000 >= effectiveAt) {
+    return next;
+  }
+  return current;
+}
+
+/**
+ * Multipliers for many mints in one request.
+ *
+ * The page needs every multiplier before it can put a per-token price next to an
+ * oracle price, and one call keeps that off the critical path. A mint that will
+ * not parse falls back to 1, which is the identity and cannot silently distort a
+ * price.
+ */
+export async function readMultipliers(
+  connection: Connection,
+  mints: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (mints.length === 0) return out;
+
+  const infos = await connection.getMultipleParsedAccounts(mints.map((m) => new PublicKey(m)));
+  infos.value.forEach((info, i) => {
+    const data = info?.data;
+    if (!data || !("parsed" in data)) return;
+    out.set(mints[i], fromExtensions(data.parsed?.info?.extensions ?? []));
+  });
+  return out;
+}
+
 /**
  * The multiplier in force right now, or 1 when the mint has no such extension.
  *

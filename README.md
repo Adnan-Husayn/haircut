@@ -74,6 +74,26 @@ which is why the swap panel applies it, and why that panel now agrees with Phant
 Sanity check that the metric is sound: round-trip cost is monotonic in pool depth, and monotonic
 in trade size, for every token. The earlier index-based numbers were neither.
 
+### Against the oracle
+
+The table's last column is a live quote against the live company feed: what one share costs when
+bought as a token, against what Pyth says that share is worth. Measured live, the tokens track the
+oracle to within a few basis points, while execution costs up to 105 bps at $10,000. The premium is
+not where the money goes. The spread is.
+
+Two things make that number easy to get wrong, and both were got wrong first:
+
+**The multiplier applies here, and only here.** Round-trip cost quotes both legs raw precisely so
+the scaled-UI multiplier cancels. A price is a single leg, so it does not cancel: a price per raw
+unit has to be divided by the multiplier to become a price per share. Skipping that step makes
+every row report its own multiplier as a market premium (SPYx +0.62% against a 1.0057 multiplier,
+AAPLx +0.31% against 1.0033), with TSLAx at exactly 1.0 sitting at zero and looking like proof.
+
+**Both sides must be read at the same moment.** Comparing a feed that updates every ten seconds
+against a trade recorded an hour earlier measures the stock moving. MSTRx read +1.00% that way and
++0.16% when both sides were taken seconds apart, so the page quotes the price live rather than
+reusing the recorded table beside it.
+
 ## Second finding: the oracle prices the company, not the token
 
 Pyth price feed accounts are PDAs of `pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT`,

@@ -522,7 +522,8 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
     grid-template-areas:
       "sym   primary"
       "bar   bar"
-      "left  right";
+      "left  right"
+      "prem  prem";
     column-gap: 14px;
   }
 
@@ -569,6 +570,26 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   .cost td.secondary .unit { display: none; }
   .cost td.sec-0 { grid-area: left; }
   .cost td.sec-1 { grid-area: right; justify-self: start; }
+
+  /* The premium is a different quantity from the cost figures above it, so it
+     gets its own line rather than competing for the "left right" row. */
+  .cost td.premium {
+    grid-area: prem;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    margin-top: 7px;
+    white-space: nowrap;
+  }
+  .cost td.premium::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-right: 6px;
+  }
 
   .cost td.liq, .liq-col, .hide-sm { display: none; }
 
