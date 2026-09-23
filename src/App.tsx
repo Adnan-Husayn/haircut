@@ -242,11 +242,18 @@ export default function App() {
         <h2>The oracle prices the company, not the token</h2>
         <p className="note">
           Pyth publishes two feeds per name, read here directly from their price accounts on
-          Solana. The company feed is live and keeps moving after the US close. The feed for the
-          token itself stopped on 12 September, and the redemption-rate feeds that would price the
-          gap between a token and a share stopped about eight weeks ago. Nobody is paying to keep
-          the tokenized-asset feeds current, which is the reason this page measures the round trip
-          instead of trusting a reference price.
+          Solana, and the two are maintained nothing alike. The company feed publishes every few
+          seconds and keeps moving after the US close. The token's own feed publishes when somebody
+          pays for it: the ages in the table below are live, and they have ranged from hours to
+          weeks on the same afternoon. The redemption-rate feeds, which would price the gap between
+          a token and the share behind it, have not published since July.
+        </p>
+        <p className="note">
+          Pyth is a pull oracle, so an account only moves while somebody pays to update it.
+          Somebody pays for the companies. For the tokens it is intermittent, which is worse than
+          dead: a feed that has not published in eleven days looks exactly like one that updated a
+          minute ago unless you check the timestamp. That is why this page measures the round trip
+          rather than trusting a reference price.
         </p>
         <p className="note">
           A price account is a PDA of [shard, feed id], and the same feed exists at several shards.

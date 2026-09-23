@@ -114,22 +114,34 @@ feed was ever more than **19 seconds** old (min 3s, mean 10s, zero readings abov
 Price discovery continues after hours at the same rate. MSTR moved more after the close than
 before it.
 
-`Crypto.{SYMBOL}X/USD` prices the token you would actually buy, and it stopped:
+`Crypto.{SYMBOL}X/USD` prices the token you would actually buy, and it publishes only when
+somebody pays for it. Read on 23 September, the same eight feeds at the same shard:
 
-| feed family | shards with an account | last published | age |
-|-------------|-----------------------|----------------|----:|
-| `Equity.US.{SYMBOL}/USD`   | 0 (dead), **1 (live)** | continuously | seconds |
-| `Crypto.{SYMBOL}X/USD`     | 0 only | 2026-09-12 12:18 UTC | ~4d |
-| `Crypto.{SYMBOL}X/{SYMBOL}.RR` | 0 only | 2026-07-21 to 2026-07-26 | ~8w |
+| feed | last published | age |
+|------|----------------|----:|
+| `Crypto.TSLAX/USD`  | 2026-09-23 12:32 | 0.3d |
+| `Crypto.SPYX/USD`   | 2026-09-21 19:59 | 2.0d |
+| `Crypto.MSTRX/USD`  | 2026-09-21 13:53 | 2.3d |
+| `Crypto.NVDAX/USD`  | 2026-09-20 19:58 | 3.0d |
+| `Crypto.AAPLX/USD`  | 2026-09-12 12:18 | 11.4d |
+| `Crypto.METAX/USD`  | 2026-09-12 12:18 | 11.4d |
+| `Crypto.GOOGLX/USD` | 2026-09-12 12:18 | 11.4d |
+| `Crypto.AMZNX/USD`  | 2026-09-12 12:18 | 11.4d |
 
-All eight token feeds froze at the same timestamp, so this is one publisher stopping rather
-than drift. The redemption-rate feeds, which exist precisely to price the gap between a token
-and the share behind it, stopped about eight weeks ago.
+On 16 September all eight read 12 September at the same timestamp, which looked like a publisher
+that had stopped. A week later half of them had moved and half had not. The pattern is not a stop,
+it is intermittency: hours to weeks apart, on no schedule, with nothing on the account to say which
+you are holding. That is worse than a feed that is plainly dead, because a dead feed is obvious.
+
+The `Crypto.{SYMBOL}X/{SYMBOL}.RR` redemption-rate feeds, which exist precisely to price the gap
+between a token and the share behind it, have not published since late July.
 
 Pyth is a pull oracle: an on-chain price account only moves while somebody pays to update it.
-Somebody is paying for the company feeds. Nobody is paying for the feeds specific to the
-tokenized assets. That is the reason this project measures the round trip rather than pricing
-against a reference: for the thing being traded, there is no maintained on-chain reference.
+Somebody pays for the company feeds continuously. For the token feeds somebody pays occasionally,
+which is the harder case to build on. That is the reason this project measures the round trip
+rather than pricing against a reference: for the thing being traded there is a reference price,
+and no way to know from the account whether it is a minute or a fortnight old without reading the
+timestamp every single time.
 
 ### A correction, and the trap that caused it
 

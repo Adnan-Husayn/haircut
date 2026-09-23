@@ -6,7 +6,8 @@ import { XSTOCKS } from "../lib/tokens";
  *
  * Equity.US.{SYMBOL}/USD prices the company. It publishes every few seconds,
  * around the clock, and keeps moving after the US close. Crypto.{SYMBOL}X/USD
- * prices the token you would actually buy, and it stopped on 12 September 2026.
+ * prices the token you would actually buy, and it publishes only when somebody
+ * pays for it: on 23 September the eight ages ranged from 0.3 to 11.4 days.
  *
  * The age of the token feed is the alarm, not the price gap: a feed that has not
  * published in days is unusable regardless of how far it has drifted, and the
