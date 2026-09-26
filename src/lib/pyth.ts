@@ -6,16 +6,23 @@
  * oracle says next to what the trade actually costs.
  *
  * A feed is not one account. The price account is a PDA of [shard, feed id], and
- * the same feed exists at several shards maintained by different publishers. For
- * the equity feeds, shard 0 is abandoned: AAPL there last published 2026-08-14
- * and reads $305.92, while the same feed at shard 1 publishes every few seconds
- * and tracks the market to within a few basis points. Reading a fixed shard 0 is
- * therefore not "the oracle", it is one dead deployment of it, so every read here
- * sweeps the shards and takes the freshest account.
+ * the same feed exists at several shards with different publishers behind each.
+ * The receiver is permissionless, so an account moves only while somebody pays to
+ * push into it, and a shard nobody is pushing still answers with an old price and
+ * no error. Reading a fixed shard is therefore not "reading the oracle": on
+ * 2026-09-25 AAPL read $305.92 from 14 August at shard 0 and the live market price
+ * at shard 1.
  *
- * SOL/USD is the control that proves the decoder is right: it is live on the same
- * program, and it also has an abandoned shard (2, last published 2024-04-11),
- * which is the same trap in a feed nobody would call stale.
+ * Every read here sweeps the shards and takes the freshest, which is an assumption
+ * rather than a fix. Measured 2026-09-26, all 20 recent writes to the equity
+ * accounts at shard 1 came from a single fee payer, and when it stopped on the
+ * Friday at 23:59 UTC all eight feeds went stale together. The freshest shard can
+ * be one publisher who stops, so callers must read ageHours, never just price.
+ *
+ * SOL/USD is the control that proves the decoder is right. It is one of the feeds
+ * pushed continuously by many parties (9 distinct fee payers across 20 writes in
+ * 10 seconds), which is why it does not go stale, and it is not evidence that any
+ * other feed is maintained.
  */
 import { PublicKey } from "@solana/web3.js";
 import { makeConnection } from "./chain";
@@ -129,7 +136,7 @@ export async function readFeeds(
     try {
       const update = decodePriceUpdate(new Uint8Array(info.data), id, shard);
       const best = out.get(id);
-      // Freshest wins. An abandoned shard must never mask a live one.
+      // Freshest wins. A shard nobody is pushing must not mask one someone is.
       if (!best || update.publishTime > best.publishTime) out.set(id, update);
     } catch {
       /* a feed that will not decode is reported as missing, never as fresh */

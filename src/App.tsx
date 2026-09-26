@@ -242,25 +242,29 @@ export default function App() {
         <h2>The oracle prices the company, not the token</h2>
         <p className="note">
           Pyth publishes two feeds per name, read here directly from their price accounts on
-          Solana, and the two are maintained nothing alike. The company feed publishes every few
-          seconds and keeps moving after the US close. The token's own feed publishes when somebody
-          pays for it: the ages in the table below are live, and they have ranged from hours to
-          weeks on the same afternoon. The redemption-rate feeds, which would price the gap between
-          a token and the share behind it, have not published since July.
+          Solana, and the two are maintained nothing alike. The ages in the table below are live.
+          The company feeds have run every few seconds through the US close, and have also sat
+          still for a day at a time. The token's own feed publishes when somebody pays for it, and
+          those ages have ranged from hours to weeks on the same afternoon. The redemption-rate
+          feeds, which would price the gap between a token and the share behind it, have not
+          published since July.
         </p>
         <p className="note">
-          Pyth is a pull oracle, so an account only moves while somebody pays to update it.
-          Somebody pays for the companies. For the tokens it is intermittent, which is worse than
-          dead: a feed that has not published in eleven days looks exactly like one that updated a
-          minute ago unless you check the timestamp. That is why this page measures the round trip
-          rather than trusting a reference price.
+          Pyth's receiver is permissionless: an account moves only while somebody pays to push a
+          price into it. A small set of designated feeds are pushed continuously by many parties at
+          once, and SOL/USD is one of them, which is why the control never goes stale. The equity
+          and token feeds here are not in that set, so their freshness is whatever their publishers
+          choose on the day, and nothing on the account says who those publishers are or whether
+          they will continue. That is why this page measures the round trip rather than trusting a
+          reference price.
         </p>
         <p className="note">
-          A price account is a PDA of [shard, feed id], and the same feed exists at several shards.
-          Shard 0 of the company feeds is abandoned and still answers, with a month-old price and
-          no error of any kind. This page had that wrong until 16 September: it read shard 0 and
-          reported a dead deployment as a dead oracle. Every read now sweeps the shards and takes
-          the freshest. SOL/USD is the control, and it has the same trap at shard 2.
+          A price account is a PDA of [shard, feed id], and the same feed exists at several shards
+          with different publishers behind each. This page read only shard 0 until 16 September and
+          reported the equity oracles as stopped, which was wrong: a shard nobody happens to be
+          pushing still answers, with an old price and no error of any kind. Reads now sweep the
+          shards and take the freshest, which is its own assumption, since the freshest shard can
+          be one publisher who stops. Always read the age next to the price.
         </p>
         <StalenessPanel feeds={feeds} marketPrice={marketPrice} />
       </div>

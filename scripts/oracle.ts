@@ -2,8 +2,8 @@
  * Oracle staleness check. Run: npm run oracle
  *
  * Verifies the Pyth decoder and reports the freshest reading for each feed,
- * naming the shard it came from. Shards disagree: the equity feeds are abandoned
- * at shard 0 and live at shard 1, so a per-shard breakdown is the point here.
+ * naming the shard it came from. Shards disagree because each has its own
+ * publishers pushing into it, so a per-shard breakdown is the point here.
  *
  * SOL/USD is the control: if it does not come back fresh, the decoder is wrong
  * and nothing below this line means anything.

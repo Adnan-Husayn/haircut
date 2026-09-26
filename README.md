@@ -143,24 +143,39 @@ rather than pricing against a reference: for the thing being traded there is a r
 and no way to know from the account whether it is a minute or a fortnight old without reading the
 timestamp every single time.
 
-### A correction, and the trap that caused it
+### Two corrections, and what actually causes the trap
 
 Until 16 September this section claimed the equity oracles themselves had stopped. That was
-wrong. The code read **shard 0** and nothing else.
+wrong. The code read **shard 0** and nothing else, and AAPL there reads $305.92 from 14 August
+while the same feed at shard 1 tracked the live market.
 
-Shard 0 of the company feeds is an abandoned deployment. It still answers, with a month-old
-price, and returns no error of any kind: AAPL there reads $305.92 from 14 August, while the
-same feed at shard 1 tracks the market to within a few basis points. A dead deployment was
-mistaken for a dead oracle.
+The second correction came from Pyth. "Abandoned" was also wrong. The receiver program is
+permissionless: anyone with Pyth Pro access can push a price on-chain, so an account moves only
+while somebody pays to push into it, and a shard nobody happens to be pushing still answers with
+an old price and no error of any kind. A designated set of push feeds is maintained continuously,
+and the rest show whatever their last pusher left behind. Nobody retired anything.
+
+The difference is visible in who signs the writes. Last 20 transactions per account, read
+2026-09-26 20:54 UTC:
+
+| account | window | distinct fee payers |
+|---------|--------|--------------------:|
+| `SOL/USD` shard 0 | 20 writes in 10s | **9** |
+| `Equity.US.AAPL/USD` shard 0 | last write 2026-08-17 | several one-off payers |
+| `Equity.US.AAPL/USD` shard 1 | 20 writes in 3m | **1** |
 
 `src/lib/pyth.ts` now sweeps shards 0 to 2 in a single `getMultipleAccounts` call and takes the
-freshest reading, and `PriceUpdate` carries the shard it came from. Shard 1 is deliberately not
-hardcoded: hardcoding a shard is what caused this, and shard 1 can be abandoned later exactly
-as shard 0 was.
+freshest reading, and `PriceUpdate` carries the shard it came from. That is an assumption, not a
+fix. The single fee payer behind shard 1 stopped on Friday 25 September at 23:59 UTC, and all
+eight equity feeds went stale together; by Saturday evening they read 20.9 hours old while
+SOL/USD stayed current to the second. Taking the freshest shard means depending on whichever
+publisher is most recent, without knowing who they are or whether they will continue, which is
+why the panel shows the age beside every price.
 
 Verification: the decoder is validated against SOL/USD on the same program, which returns
-current-to-the-second. SOL/USD has the same trap at shard 2, last published 2024-04-11, in a
-feed nobody would describe as stale. `npm run oracle` reports the shard for every reading and
+current-to-the-second because many parties push it. That is a property of that feed, not
+evidence that any other feed is maintained, and SOL/USD itself shows an untouched shard 2 last
+written 2024-04-11. `npm run oracle` reports the shard for every reading and
 refuses to report anything if the control is not fresh.
 
 ## It executes
