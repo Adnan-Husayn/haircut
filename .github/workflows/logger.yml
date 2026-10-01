@@ -31,12 +31,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
+      # A run that waited in the queue was created against an older commit.
+      # Check out the branch as it is now, not as it was when the run was queued.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Take snapshots
         env:
           SNAPSHOTS: ${{ inputs.snapshots || '4' }}
         run: |
+          wc -l < data/roundtrip_log.csv > "$RUNNER_TEMP/rows_before"
           for i in $(seq "$SNAPSHOTS"); do
             python3 scripts/xstock_logger.py || true
             if [ "$i" -lt "$SNAPSHOTS" ]; then sleep 830; fi
@@ -53,10 +58,17 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          last=$(tail -1 data/roundtrip_log.csv | cut -d, -f1)
-          git commit -qm "Log round-trip cost through $(date -u -d "$last" '+%-d %B %H:%M') UTC" data/roundtrip_log.csv
-          for attempt in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+          # Carry only this run's rows and append them to whatever main is now.
+          # Rebasing one append onto another conflicts, and on 1 October that
+          # threw away four snapshots.
+          tail -n +"$(( $(cat "$RUNNER_TEMP/rows_before") + 1 ))" data/roundtrip_log.csv > "$RUNNER_TEMP/new_rows"
+          last=$(tail -1 "$RUNNER_TEMP/new_rows" | cut -d, -f1)
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            cat "$RUNNER_TEMP/new_rows" >> data/roundtrip_log.csv
+            git commit -qm "Log round-trip cost through $(date -u -d "$last" '+%-d %B %H:%M') UTC" data/roundtrip_log.csv
+            git push -q origin HEAD:main && exit 0
             sleep 5
           done
           exit 1

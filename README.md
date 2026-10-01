@@ -272,6 +272,7 @@ Since 1 October the logger runs as a GitHub Action (`.github/workflows/logger.ym
 snapshots an hour, one commit, each run starting the next. Before that it ran on a laptop and
 stopped twice, 17 to 23 September and 29 September to 1 October. A third gap, 12:55 to 18:47 UTC
 on 1 October, is the Action's first afternoon: it relied on GitHub's cron, which never fired.
+A further hour that evening (19:29 to 20:27 UTC) was recorded and then lost to a merge conflict.
 Those gaps are real and stay in the data.
 
 No API keys. Jupiter quotes and Pyth market-hours metadata are both public.
