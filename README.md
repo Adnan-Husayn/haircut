@@ -268,6 +268,11 @@ python3 scripts/xstock_logger.py            # one snapshot
 python3 scripts/xstock_logger.py --loop 900 # continuous -> data/roundtrip_log.csv
 ```
 
+Since 1 October the logger runs as a scheduled GitHub Action
+(`.github/workflows/logger.yml`): four snapshots an hour, one commit. Before that it ran on a
+laptop and stopped twice, 17 to 23 September and 29 September to 1 October. Those gaps are real
+and stay in the data.
+
 No API keys. Jupiter quotes and Pyth market-hours metadata are both public.
 
 The series starts 2026-09-13 12:27 UTC and spans the closed→open transition, which is the point:

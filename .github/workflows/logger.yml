@@ -1,0 +1,56 @@
+name: Log round-trip cost
+
+# These quotes cannot be reconstructed after the fact, so the logger must not
+# depend on a laptop staying awake. Each run takes four snapshots about 15
+# minutes apart and commits once, which keeps the history to one commit an hour.
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      snapshots:
+        description: Snapshots to take before committing
+        default: "4"
+
+permissions:
+  contents: write
+
+# A delayed run must wait for the one before it, never append alongside it.
+concurrency:
+  group: logger
+  cancel-in-progress: false
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take snapshots
+        env:
+          SNAPSHOTS: ${{ inputs.snapshots || '4' }}
+        run: |
+          for i in $(seq "$SNAPSHOTS"); do
+            python3 scripts/xstock_logger.py || true
+            if [ "$i" -lt "$SNAPSHOTS" ]; then sleep 830; fi
+          done
+
+      - name: Commit
+        if: always()
+        run: |
+          # A run that recorded nothing fails loudly. A silent gap is the failure
+          # this workflow exists to prevent.
+          if git diff --quiet -- data/roundtrip_log.csv; then
+            echo "::error::no round trips were recorded this run"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          last=$(tail -1 data/roundtrip_log.csv | cut -d, -f1)
+          git commit -qm "Log round-trip cost through $(date -u -d "$last" '+%-d %B %H:%M') UTC" data/roundtrip_log.csv
+          for attempt in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
