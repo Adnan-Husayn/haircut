@@ -228,9 +228,10 @@ export default function App() {
       <div className="panel">
         <h2>Cost is not a constant</h2>
         <p className="note">
-          Recorded every 15 minutes since 13 September. The break between the 17th and the 24th is
-          a logger that stopped, not a market that went quiet: these quotes cannot be reconstructed
-          after the fact, so the gap stays. The spread between tokens persists, and each token's
+          Recorded every 15 minutes since 13 September. The breaks (17 to 23 September, 29
+          September to 1 October, and six hours on 1 October) are a logger that stopped, not a
+          market that went quiet: these quotes cannot be reconstructed after the fact, so the gaps
+          stay. Since 1 October it runs on a hosted schedule rather than a laptop. The spread between tokens persists, and each token's
           own cost moves, which is why a single quote is not an answer.
         </p>
         <CostHistory points={history} sizeUsdc={Math.max(...SIZES_USDC)} />

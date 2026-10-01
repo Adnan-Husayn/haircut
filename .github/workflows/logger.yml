@@ -3,6 +3,10 @@ name: Log round-trip cost
 # These quotes cannot be reconstructed after the fact, so the logger must not
 # depend on a laptop staying awake. Each run takes four snapshots about 15
 # minutes apart and commits once, which keeps the history to one commit an hour.
+#
+# Each run starts its successor. GitHub's scheduler did not fire once in the
+# first six hours this was live (1 October, 13:07 to 18:07 UTC), so the cron
+# below is only what restarts the chain if a run dies before handing over.
 on:
   schedule:
     - cron: "7 * * * *"
@@ -14,8 +18,10 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
-# A delayed run must wait for the one before it, never append alongside it.
+# One run at a time and at most one waiting, so a cron run that does arrive
+# joins the chain instead of starting a second one.
 concurrency:
   group: logger
   cancel-in-progress: false
@@ -23,7 +29,7 @@ concurrency:
 jobs:
   log:
     runs-on: ubuntu-latest
-    timeout-minutes: 58
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
@@ -54,3 +60,12 @@ jobs:
             sleep 5
           done
           exit 1
+
+      - name: Hand over to the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Wait out the rest of the 15 minutes so the spacing holds across runs.
+          sleep 780
+          gh workflow run logger.yml --ref main

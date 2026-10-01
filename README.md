@@ -268,10 +268,11 @@ python3 scripts/xstock_logger.py            # one snapshot
 python3 scripts/xstock_logger.py --loop 900 # continuous -> data/roundtrip_log.csv
 ```
 
-Since 1 October the logger runs as a scheduled GitHub Action
-(`.github/workflows/logger.yml`): four snapshots an hour, one commit. Before that it ran on a
-laptop and stopped twice, 17 to 23 September and 29 September to 1 October. Those gaps are real
-and stay in the data.
+Since 1 October the logger runs as a GitHub Action (`.github/workflows/logger.yml`): four
+snapshots an hour, one commit, each run starting the next. Before that it ran on a laptop and
+stopped twice, 17 to 23 September and 29 September to 1 October. A third gap, 12:55 to 18:47 UTC
+on 1 October, is the Action's first afternoon: it relied on GitHub's cron, which never fired.
+Those gaps are real and stay in the data.
 
 No API keys. Jupiter quotes and Pyth market-hours metadata are both public.
 

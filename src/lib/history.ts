@@ -6,8 +6,10 @@
  * not a single lucky snapshot -- cost moves, and it moves most around the
  * market open and close.
  *
- * The CSV is copied into public/ at build time (see package.json prebuild) so
- * the deployed site ships its own evidence rather than refetching it.
+ * The logger commits to the repository every hour, so the repository copy is
+ * newer than any build and is read first. The CSV is also copied into public/
+ * at build time (see package.json prebuild), and that shipped copy is what the
+ * page falls back to if GitHub cannot be reached.
  */
 
 export interface HistoryPoint {
@@ -151,14 +153,21 @@ export function toSeries(points: HistoryPoint[], sizeUsdc: number): Series[] {
     .sort((a, b) => a.last - b.last);
 }
 
+const REPO_HISTORY =
+  "https://raw.githubusercontent.com/Adnan-Husayn/haircut/main/data/roundtrip_log.csv";
+
 export async function loadHistory(): Promise<HistoryPoint[]> {
-  try {
-    const res = await fetch("/history.csv");
-    if (!res.ok) return [];
-    return parseHistory(await res.text());
-  } catch {
-    return [];
+  for (const url of [REPO_HISTORY, "/history.csv"]) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const points = parseHistory(await res.text());
+      if (points.length) return points;
+    } catch {
+      /* fall through to the shipped copy */
+    }
   }
+  return [];
 }
 
 /**
