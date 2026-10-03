@@ -1,3 +1,5 @@
+<img src="public/favicon.svg" width="72" alt="Haircut logo">
+
 # Haircut
 
 **Every tokenized stock takes a haircut. Nobody tells you how big.**
@@ -35,6 +37,25 @@ entering and exiting cost. Live Jupiter quotes, 2026-09-14 16:14 UTC, **US marke
 Round-tripping $10,000 of Meta costs **$126.42**; the same trade in the S&P 500 ETF costs **$3.03**.
 
 Nothing in any interface tells you this before you trade.
+
+### Across the whole record
+
+One snapshot can be a lucky minute. These are medians over 710 snapshots from 13 September to
+3 October, with liquidity as of the last one:
+
+| token | liquidity | $100 | $1,000 | $10,000 |
+|-------|----------:|-----:|-------:|--------:|
+| SPYx   |  $5.1M | 1.1 bps | 2.4 bps | 4.9 bps |
+| NVDAx  |  $4.7M | 4.2 bps | 6.4 bps | 9.7 bps |
+| TSLAx  |  $1.5M | 5.3 bps | 9.5 bps | 10.3 bps |
+| MSTRx  |  $1.2M | 9.6 bps | 10.0 bps | 14.5 bps |
+| METAx  |  $769k | 24.1 bps | 34.1 bps | 52.6 bps |
+| GOOGLx |  $628k | 27.2 bps | 40.2 bps | 59.3 bps |
+| AAPLx  |  $547k | 21.3 bps | 35.0 bps | 62.6 bps |
+| AMZNx  |  $276k | 37.1 bps | 48.7 bps | 82.3 bps |
+
+At $10,000 the median round trip costs **$82** in AMZNx and **$5** in SPYx, a 17x spread. The
+14 September figures above sit at the wide end of what the record shows.
 
 ## Two things that make it hard to measure correctly
 

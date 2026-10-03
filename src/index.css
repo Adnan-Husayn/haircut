@@ -75,6 +75,13 @@ a { color: var(--red); text-decoration: underline; text-underline-offset: 2px; }
   border-right: 1px solid var(--rule-2);
 }
 
+.masthead .mark {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 0 22px;
+}
+
 .masthead h1 {
   font-family: var(--display);
   font-size: clamp(40px, 6.2vw, 78px);

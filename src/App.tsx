@@ -153,6 +153,7 @@ export default function App() {
     <div className="wrap">
       <header className="masthead">
         <div className="left">
+          <img className="mark" src="/favicon.svg" alt="" width={56} height={56} />
           <h1>Haircut</h1>
           <p className="tagline">
             Every tokenized stock takes one. Buy ${RANK_SIZE.toLocaleString()}, sell back exactly
@@ -229,7 +230,7 @@ export default function App() {
         <h2>Cost is not a constant</h2>
         <p className="note">
           Recorded every 15 minutes since 13 September. The breaks (17 to 23 September, 29
-          September to 1 October, and six hours on 1 October) are a logger that stopped, not a
+          September to 1 October, and seven hours on 1 October) are a logger that stopped, not a
           market that went quiet: these quotes cannot be reconstructed after the fact, so the gaps
           stay. Since 1 October it runs on a hosted schedule rather than a laptop. The spread between tokens persists, and each token's
           own cost moves, which is why a single quote is not an answer.
