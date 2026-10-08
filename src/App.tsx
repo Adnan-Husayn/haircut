@@ -157,8 +157,9 @@ export default function App() {
           <h1>Haircut</h1>
           <p className="tagline">
             Every tokenized stock takes one. Buy ${RANK_SIZE.toLocaleString()}, sell back exactly
-            what you got, and count what never came home. That gap is the haircut, and nothing
-            tells you how big it is before you trade.
+            what you got, and count what never came home. That gap is the haircut. A swap screen
+            shows the price impact of one leg. It does not show the round trip, or how one stock
+            compares with the next.
           </p>
         </div>
         <div className="right">
@@ -230,7 +231,7 @@ export default function App() {
         <h2>Cost is not a constant</h2>
         <p className="note">
           Recorded every 15 minutes since 13 September. The breaks (17 to 23 September, 29
-          September to 1 October, and seven hours on 1 October) are a logger that stopped, not a
+          September to 1 October, seven hours on 1 October, and three hours on 5 October) are a logger that stopped, not a
           market that went quiet: these quotes cannot be reconstructed after the fact, so the gaps
           stay. Since 1 October it runs on a hosted schedule rather than a laptop. The spread between tokens persists, and each token's
           own cost moves, which is why a single quote is not an answer.

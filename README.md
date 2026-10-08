@@ -2,7 +2,7 @@
 
 # Haircut
 
-**Every tokenized stock takes a haircut. Nobody tells you how big.**
+**Every tokenized stock takes a haircut. Haircut measures how big.**
 
 **Live:** https://haircut-fi.vercel.app  
 **Source:** https://github.com/Adnan-Husayn/haircut
@@ -36,7 +36,13 @@ entering and exiting cost. Live Jupiter quotes, 2026-09-14 16:14 UTC, **US marke
 **A 42x spread at $10,000. A 78x spread at $100.** Same asset class, same wallet, same minute.
 Round-tripping $10,000 of Meta costs **$126.42**; the same trade in the S&P 500 ETF costs **$3.03**.
 
-Nothing in any interface tells you this before you trade.
+A swap screen shows the price impact of one leg of one trade. It does not show the round trip, and
+it does not put the eight tokens side by side.
+
+That impact figure is also computed against a reference price. Across 28,599 recorded round trips,
+buy impact plus sell impact matched the measured round trip within 1 bp 67% of the time and
+missed it by more than 5 bps 21% of the time. A round trip needs no reference
+price, so it does not inherit that error.
 
 ### Across the whole record
 
@@ -294,6 +300,8 @@ snapshots an hour, one commit, each run starting the next. Before that it ran on
 stopped twice, 17 to 23 September and 29 September to 1 October. A third gap, 12:55 to 18:47 UTC
 on 1 October, is the Action's first afternoon: it relied on GitHub's cron, which never fired.
 A further hour that evening (19:29 to 20:27 UTC) was recorded and then lost to a merge conflict.
+On 5 October a run failed before it started, so it never handed over, and the hourly cron took until
+22:32 UTC to restart the chain: a gap from 19:18 to 22:33 UTC.
 Those gaps are real and stay in the data.
 
 No API keys. Jupiter quotes and Pyth market-hours metadata are both public.
