@@ -48570,3 +48570,11 @@ ts,symbol,equity,market_open,size_usdc,tokens_out,usd_back,roundtrip_bps,buy_imp
 2026-11-01T05:26:51+00:00,AAPLx,AAPL,False,1000,2.89084612,999.5003,5.0,0.0068,0.0432,GoonFi V2 + Manifest + Whirlpool,Whirlpool,344.7728,819067.0
 2026-11-01T05:40:44+00:00,AAPLx,AAPL,False,100,0.2890864,99.9834,1.66,0.0,0.0432,BisonFi + Manifest,Whirlpool,344.8876,820240.0
 2026-11-01T05:40:44+00:00,AAPLx,AAPL,False,1000,2.89071213,999.741,2.59,0.0,0.0473,Whirlpool + Meteora DLMM + Manifest,Manifest + Deriverse + Raydium CLMM + Whirlpool,344.8876,820240.0
+2026-11-01T05:53:59+00:00,AAPLx,AAPL,False,100,0.28907073,99.9587,4.13,0.0409,0.0004,Whirlpool,Whirlpool,344.674,818245.0
+2026-11-01T05:53:59+00:00,AAPLx,AAPL,False,1000,2.89058355,999.4929,5.07,0.0452,0.0055,Whirlpool + GoonFi V2 + Manifest,Whirlpool,344.674,818245.0
+2026-11-01T06:07:52+00:00,AAPLx,AAPL,False,100,0.28894772,99.9913,0.87,0.0,0.1905,Hadron,Manifest + GoonFi V2,345.5885,815783.0
+2026-11-01T06:07:52+00:00,AAPLx,AAPL,False,1000,2.88937327,999.6748,3.25,0.0,0.2107,Hadron + Whirlpool,Whirlpool + Raydium CLMM + Manifest + TesseraV,345.5885,815783.0
+2026-11-01T06:21:46+00:00,AAPLx,AAPL,False,100,0.28899677,99.9832,1.68,0.0,0.0229,TesseraV + Manifest,Manifest + GoonFi V2,344.9198,812583.0
+2026-11-01T06:21:46+00:00,AAPLx,AAPL,False,1000,2.88980205,999.6167,3.83,0.0,0.0387,TesseraV + BisonFi + Manifest + Whirlpool,Manifest + GoonFi V2 + Whirlpool + Raydium CLMM,344.9198,812583.0
+2026-11-01T06:35:40+00:00,AAPLx,AAPL,False,100,0.28898465,99.979,2.1,0.0,0.0229,GoonFi V2 + Manifest,Manifest + TesseraV,344.925,814513.0
+2026-11-01T06:35:40+00:00,AAPLx,AAPL,False,1000,2.88977501,999.6128,3.87,0.0005,0.0382,Whirlpool + GoonFi V2 + Manifest,Raydium CLMM + Manifest + TesseraV + Whirlpool,344.925,814513.0
